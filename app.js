@@ -214,10 +214,52 @@ function parseStoreDRE(rows) {
         lucroOperacional: 0
     };
     
+    // Encontrar a linha de cabeçalho e a coluna do mês de Maio
+    let colIndex = 1;
+    let monthRowIndex = -1;
+    
+    for (let r = 0; r < Math.min(rows.length, 15); r++) {
+        const row = rows[r];
+        if (!row) continue;
+        for (let c = 0; c < row.length; c++) {
+            const cellVal = String(row[c]).trim();
+            if (["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"].includes(cellVal)) {
+                monthRowIndex = r;
+                break;
+            }
+        }
+        if (monthRowIndex !== -1) break;
+    }
+    
+    if (monthRowIndex !== -1) {
+        const headerRow = rows[monthRowIndex];
+        let targetCol = -1;
+        for (let c = 0; c < headerRow.length; c++) {
+            if (String(headerRow[c]).trim() === "Maio") {
+                targetCol = c;
+                break;
+            }
+        }
+        
+        if (targetCol === -1) {
+            for (let c = headerRow.length - 1; c >= 0; c--) {
+                const cellVal = String(headerRow[c]).trim();
+                if (["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"].includes(cellVal)) {
+                    targetCol = c;
+                    break;
+                }
+            }
+        }
+        
+        if (targetCol !== -1) {
+            colIndex = targetCol;
+        }
+    }
+    
     rows.forEach(row => {
-        if (!row || row.length < 2) return;
+        if (!row || row.length <= colIndex) return;
         const conta = String(row[0]).trim();
-        const valorVal = parseCurrency(row[1]);
+        const valorVal = parseCurrency(row[colIndex]);
         
         switch (true) {
             case conta.toUpperCase().includes("RECEITA BRUTA"):
