@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domino's DRE Analyzer - Painel de Oportunidades</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- SheetJS CDN para processar planilhas no navegador -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-container">
+            <div class="logo-area">
+                <div class="dominos-tile">
+                    <span class="dot dot-1"></span>
+                    <span class="dot dot-2"></span>
+                </div>
+                <h1>DRE <span class="accent-text">Analyzer</span></h1>
+            </div>
+            <p class="subtitle">Consultoria de Operações Sênior - Fast Food</p>
+        </div>
+    </header>
+
+    <main class="app-main">
+        <section class="upload-section">
+            <div class="card upload-card">
+                <h2>📊 Iniciar Nova Análise</h2>
+                <p class="card-instruction">Faça o upload da DRE mensal consolidada da Altivus (.xlsx) para identificar desvios e oportunidades instantaneamente.</p>
+                
+                <div class="drop-zone" id="dre-dropzone">
+                    <div class="drop-zone-content">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                        </svg>
+                        <p class="main-text">Arraste a DRE mensal aqui</p>
+                        <p class="sub-text">ou clique para procurar no computador</p>
+                        <span class="file-spec">Suporta arquivos .xlsx e .xls</span>
+                    </div>
+                    <input type="file" id="dre-file-input" accept=".xlsx, .xls" class="file-input">
+                </div>
+
+                <div class="file-info-bar id="file-info-bar" style="display: none;">
+                    <div class="file-details">
+                        <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        <span id="uploaded-file-name">Nenhum arquivo selecionado</span>
+                    </div>
+                    <button class="btn btn-secondary" id="remove-file-btn">Remover</button>
+                </div>
+
+                <button class="btn btn-primary btn-block" id="analyze-btn" disabled>
+                    <span>Analisar DRE</span>
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- Seção de Resultados (Inicialmente oculta) -->
+        <section class="results-section" id="results-section" style="display: none;">
+            <div class="results-header">
+                <h2>📈 Resultados da Análise Gerencial</h2>
+                <div class="actions-group">
+                    <button class="btn btn-secondary" id="export-md-btn">Exportar Markdown</button>
+                    <button class="btn btn-primary" id="print-btn">Imprimir / Salvar PDF</button>
+                </div>
+            </div>
+
+            <!-- Seletor de Loja (se houver mais de uma na planilha) -->
+            <div class="store-selector-wrapper" id="store-selector-container" style="display: none;">
+                <label for="store-select">Visualizar Loja:</label>
+                <div class="custom-select">
+                    <select id="store-select"></select>
+                </div>
+            </div>
+
+            <!-- Resumo Executivo / KPI Cards -->
+            <div class="kpi-grid" id="kpi-grid">
+                <div class="kpi-card">
+                    <span class="kpi-label">Faturamento Bruto</span>
+                    <h3 class="kpi-value" id="kpi-faturamento">-</h3>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Receita Líquida</span>
+                    <h3 class="kpi-value" id="kpi-receita-liquida">-</h3>
+                </div>
+                <div class="kpi-card" id="kpi-ebitda-card">
+                    <span class="kpi-label">EBITDA / Lucro Operacional</span>
+                    <h3 class="kpi-value" id="kpi-ebitda">-</h3>
+                    <span class="kpi-status-badge" id="kpi-ebitda-status">-</span>
+                </div>
+            </div>
+
+            <!-- Diagnóstico Geral -->
+            <div class="card diagnostic-card">
+                <h3>🔍 Resumo Executivo & Diagnóstico</h3>
+                <p id="diagnostic-text" class="diagnostic-text">Selecione uma loja para ver o diagnóstico operacional detalhado.</p>
+            </div>
+
+            <!-- Tabela Comparativa -->
+            <div class="card table-card">
+                <h3>📊 Comparativo Gerencial (Real vs. Referência)</h3>
+                <p class="table-subtitle">Todos os percentuais calculados com base na Receita Líquida</p>
+                <div class="table-responsive">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Conta Gerencial</th>
+                                <th class="text-right">Real (R$)</th>
+                                <th class="text-right">% Real</th>
+                                <th class="text-right">% Ideal</th>
+                                <th class="text-right">Desvio (p.p.)</th>
+                                <th class="text-right">Impacto Financeiro</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comparison-table-body">
+                            <!-- Inserido dinamicamente via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Plano de Ação -->
+            <div class="card action-plan-card">
+                <h3>🛠️ Plano de Ação Recomendado (Foco em Resultado)</h3>
+                <div class="action-items-grid" id="action-plan-container">
+                    <!-- Inserido dinamicamente via JS -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <p>&copy; 2026 Domino's Brasil. Painel Operacional de Franquias - Antigravity Systems.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

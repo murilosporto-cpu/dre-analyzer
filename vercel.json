@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "name": "dominos-dre-analyzer",
+  "cleanUrls": true,
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}
