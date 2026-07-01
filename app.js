@@ -127,18 +127,31 @@ analyzeBtn.addEventListener('click', () => {
     const file = analyzeBtn.fileData;
     if (!file) return;
     
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, {type: 'array'});
-        
-        processDREWorkbook(workbook);
-    };
-    reader.readAsArrayBuffer(file);
+    try {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                
+                processDREWorkbook(workbook);
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao ler dados da planilha: " + err.message + "\n\nPor favor, envie este erro ao suporte.");
+            }
+        };
+        reader.onerror = function(err) {
+            alert("Erro de leitura do arquivo: " + err.message);
+        };
+        reader.readAsArrayBuffer(file);
+    } catch (err) {
+        alert("Erro ao iniciar leitor de arquivos: " + err.message);
+    }
 });
 
 // Processamento da Planilha DRE
 function processDREWorkbook(workbook) {
+    try {
     lojasProcessadas = {};
     const sheetNames = workbook.SheetNames;
     
@@ -186,6 +199,10 @@ function processDREWorkbook(workbook) {
     
     // Rolar até os resultados
     resultsSection.scrollIntoView({ behavior: 'smooth' });
+    } catch (err) {
+        console.error(err);
+        alert("Erro no processamento da DRE: " + err.message);
+    }
 }
 
 // Analisar linhas da DRE da Loja
@@ -265,58 +282,58 @@ function parseStoreDRE(rows) {
             case conta.toUpperCase().includes("RECEITA BRUTA"):
                 data.receitaBruta = valorVal;
                 break;
-            case conta.toUpperCase().includes("DEVOLUÇÕES E CANCELAMENTOS") || conta.toUpperCase().includes("CANCELAMENTOS"):
+            case conta.toUpperCase().includes("DEVOLU") || conta.toUpperCase().includes("CANCEL"):
                 data.devolucoes = valorVal;
                 break;
-            case conta.toUpperCase().includes("RECEITA LÍQUIDA"):
+            case conta.toUpperCase().includes("RECEITA") && (conta.toUpperCase().includes("LIQ") || conta.toUpperCase().includes("LÍQ") || conta.toUpperCase().includes("LQ") || conta.toUpperCase().includes("LÝQ") || conta.toUpperCase().includes("LQ")):
                 data.receitaLiquida = valorVal;
                 break;
-            case conta.toUpperCase().includes("CUSTO DE MERCADORIA VENDIDA (CMV)") || conta.toUpperCase().includes("CUSTO DA MERCADORIA VENDIDA"):
+            case conta.toUpperCase().includes("CMV") || conta.toUpperCase().includes("CUSTO DE MERCADORIA VENDIDA") || conta.toUpperCase().includes("CUSTO DA MERCADORIA VENDIDA"):
                 data.cmvTotal = valorVal;
                 break;
-            case conta === "Bebidas":
+            case conta.toUpperCase().includes("BEBIDAS"):
                 data.cmvBebidas = valorVal;
                 break;
-            case conta === "Massas, Farinhas e Cereais":
+            case conta.toUpperCase().includes("MASSAS"):
                 data.cmvMassas = valorVal;
                 break;
-            case conta === "Laticínios e Mussarela" || conta === "Laticínios":
+            case conta.toUpperCase().includes("LATIC") || conta.toUpperCase().includes("LATÍC") || conta.toUpperCase().includes("MUSSAR"):
                 data.cmvLaticinios = valorVal;
                 break;
-            case conta === "Alimentos e Outros Insumos" || conta === "Alimentos":
+            case conta.toUpperCase().includes("ALIMENT") || conta.toUpperCase().includes("INSUMO"):
                 data.cmvAlimentos = valorVal;
                 break;
             case conta.toUpperCase().includes("CUSTO DE PESSOAL"):
                 data.pessoalTotal = valorVal;
                 break;
-            case conta === "Salários e Ordenados" || conta === "Salários":
+            case conta.toUpperCase().includes("SALÁR") || conta.toUpperCase().includes("SALAR") || conta.toUpperCase().includes("ORDENAD"):
                 data.salarios = valorVal;
                 break;
-            case conta === "Horas Extras":
+            case conta.toUpperCase().includes("HORAS EXTRAS"):
                 data.horasExtras = valorVal;
                 break;
-            case conta === "Encargos Sociais":
+            case conta.toUpperCase().includes("ENCARGO"):
                 data.encargos = valorVal;
                 break;
-            case conta === "Benefícios (VR, VT, Seguro)" || conta === "Benefícios":
+            case conta.toUpperCase().includes("BENEF"):
                 data.beneficios = valorVal;
                 break;
-            case conta === "Recisão + FGTS" || conta.includes("Rescisão"):
+            case conta.toUpperCase().includes("RECIS") || conta.toUpperCase().includes("RESCIS") || conta.toUpperCase().includes("FGTS"):
                 data.rescisao = valorVal;
                 break;
-            case conta.toUpperCase().includes("CUSTOS DE OCUPAÇÃO E UTILIDADES") || conta.toUpperCase().includes("CUSTO DE OCUPAÇÃO"):
+            case conta.toUpperCase().includes("OCUPA") && conta.toUpperCase().includes("UTIL"):
                 data.ocupacaoTotal = valorVal;
                 break;
-            case conta === "Aluguel e Condomínio" || conta === "Aluguel":
+            case conta.toUpperCase().includes("ALUGUEL"):
                 data.aluguel = valorVal;
                 break;
-            case conta === "Energia Elétrica":
+            case conta.toUpperCase().includes("ENERGIA"):
                 data.energia = valorVal;
                 break;
-            case conta === "Gás Canalizado" || conta === "Gás":
+            case conta.toUpperCase().includes("GÁS") || conta.toUpperCase().includes("GAS"):
                 data.gas = valorVal;
                 break;
-            case conta === "Água e Saneamento" || conta === "Água":
+            case conta.toUpperCase().includes("ÁGUA") || conta.toUpperCase().includes("AGUA"):
                 data.agua = valorVal;
                 break;
             case conta.toUpperCase().includes("DESPESAS COMERCIAIS"):
@@ -371,11 +388,14 @@ function renderAnalysis(loja) {
     
     const ref = getClusterInfo(data.receitaBruta);
     
+    // Evitar divisões por zero se a receita líquida for zero
+    const recLiquidaDiv = data.receitaLiquida > 0 ? data.receitaLiquida : 1;
+    
     // 1. Preencher KPIs principais
     kpiFaturamento.textContent = formatCurrencyBRL(data.receitaBruta);
     kpiReceitaLiquida.textContent = formatCurrencyBRL(data.receitaLiquida);
     
-    const pctEbitdaReal = (data.lucroOperacional / data.receitaLiquida) * 100;
+    const pctEbitdaReal = (data.lucroOperacional / recLiquidaDiv) * 100;
     kpiEbitda.textContent = formatCurrencyBRL(data.lucroOperacional) + ` (${pctEbitdaReal.toFixed(2)}%)`;
     
     // Status do EBITDA
@@ -391,18 +411,18 @@ function renderAnalysis(loja) {
     // 2. Preencher Diagnóstico
     let diagnostic = "";
     if (pctEbitdaReal >= ref.meta_ebitda) {
-        diagnostic = `A unidade **${loja}** apresentou uma performance **muito saudável** neste mês. O Lucro Operacional (EBITDA) real atingiu **${pctEbitdaReal.toFixed(2)}%**, superando a referência ideal de **${ref.meta_ebitda.toFixed(2)}%** estabelecida para o cluster **${ref.nome}**. O principal fator de sucesso foi o controle rigoroso do CMV (CMV real de ${((Math.abs(data.cmvTotal) / data.receitaLiquida) * 100).toFixed(2)}%), neutralizando desvios menores na folha de pessoal.`;
+        diagnostic = `A unidade **${loja}** apresentou uma performance **muito saudável** neste mês. O Lucro Operacional (EBITDA) real atingiu **${pctEbitdaReal.toFixed(2)}%**, superando a referência ideal de **${ref.meta_ebitda.toFixed(2)}%** estabelecida para o cluster **${ref.nome}**. O principal fator de sucesso foi o controle rigoroso do CMV (CMV real de ${((Math.abs(data.cmvTotal) / recLiquidaDiv) * 100).toFixed(2)}%), neutralizando desvios menores na folha de pessoal.`;
     } else {
         const gap = ref.meta_ebitda - pctEbitdaReal;
         diagnostic = `A unidade **${loja}** encontra-se em cenário **crítico de rentabilidade**, com EBITDA de **${pctEbitdaReal.toFixed(2)}%** (um gap negativo de **${gap.toFixed(2)} p.p.** em relação à meta de **${ref.meta_ebitda.toFixed(2)}%**). Os principais ralos identificados na DRE que explicam essa queda de margem são: `;
         
         let ralos = [];
-        const pctRealCMV = (Math.abs(data.cmvTotal) / data.receitaLiquida) * 100;
+        const pctRealCMV = (Math.abs(data.cmvTotal) / recLiquidaDiv) * 100;
         if (pctRealCMV > Math.abs(ref.meta_cmv)) {
             ralos.push(`estouro no CMV (${pctRealCMV.toFixed(2)}% vs. ${Math.abs(ref.meta_cmv).toFixed(2)}% ideal)`);
         }
         
-        const pctRealPessoal = (Math.abs(data.pessoalTotal) / data.receitaLiquida) * 100;
+        const pctRealPessoal = (Math.abs(data.pessoalTotal) / recLiquidaDiv) * 100;
         if (pctRealPessoal > Math.abs(ref.meta_pessoal)) {
             ralos.push(`descontrole de pessoal (${pctRealPessoal.toFixed(2)}% vs. ${Math.abs(ref.meta_pessoal).toFixed(2)}% ideal) com alta dependência de horas extras`);
         }
@@ -441,7 +461,7 @@ function renderAnalysis(loja) {
     ];
     
     contasComparar.forEach(conta => {
-        const pctReal = (conta.valorReal / data.receitaLiquida) * 100;
+        const pctReal = (conta.valorReal / recLiquidaDiv) * 100;
         const desvio = pctReal - conta.meta; // Diferença em p.p.
         
         // Impacto financeiro: Receita Líquida * (Desvio / 100)
@@ -479,9 +499,9 @@ function renderAnalysis(loja) {
     // 4. Montar Plano de Ação
     actionPlanContainer.innerHTML = "";
     
-    const pctRealCMV = (Math.abs(data.cmvTotal) / data.receitaLiquida) * 100;
-    const pctRealPessoal = (Math.abs(data.pessoalTotal) / data.receitaLiquida) * 100;
-    const pctRealHorasExtras = (Math.abs(data.horasExtras) / data.receitaLiquida) * 100;
+    const pctRealCMV = (Math.abs(data.cmvTotal) / recLiquidaDiv) * 100;
+    const pctRealPessoal = (Math.abs(data.pessoalTotal) / recLiquidaDiv) * 100;
+    const pctRealHorasExtras = (Math.abs(data.horasExtras) / recLiquidaDiv) * 100;
     
     // Ação para CMV
     if (pctRealCMV > Math.abs(ref.meta_cmv)) {
@@ -563,13 +583,14 @@ document.getElementById('export-md-btn').addEventListener('click', () => {
     if (!data) return;
     
     const ref = getClusterInfo(data.receitaBruta);
-    const pctEbitdaReal = (data.lucroOperacional / data.receitaLiquida) * 100;
+    const recLiquidaDiv = data.receitaLiquida > 0 ? data.receitaLiquida : 1;
+    const pctEbitdaReal = (data.lucroOperacional / recLiquidaDiv) * 100;
     
-    const pctRealCMV = (Math.abs(data.cmvTotal) / data.receitaLiquida) * 100;
-    const pctRealPessoal = (Math.abs(data.pessoalTotal) / data.receitaLiquida) * 100;
-    const pctRealHorasExtras = (Math.abs(data.horasExtras) / data.receitaLiquida) * 100;
-    const pctRealOcupacao = (Math.abs(data.aluguel) / data.receitaLiquida) * 100;
-    const pctRealUtilidades = (Math.abs(data.energia + data.gas + data.agua) / data.receitaLiquida) * 100;
+    const pctRealCMV = (Math.abs(data.cmvTotal) / recLiquidaDiv) * 100;
+    const pctRealPessoal = (Math.abs(data.pessoalTotal) / recLiquidaDiv) * 100;
+    const pctRealHorasExtras = (Math.abs(data.horasExtras) / recLiquidaDiv) * 100;
+    const pctRealOcupacao = (Math.abs(data.aluguel) / recLiquidaDiv) * 100;
+    const pctRealUtilidades = (Math.abs(data.energia + data.gas + data.agua) / recLiquidaDiv) * 100;
     
     const desvioCMV = pctRealCMV - Math.abs(ref.meta_cmv);
     const desvioPessoal = pctRealPessoal - Math.abs(ref.meta_pessoal);
