@@ -65,42 +65,10 @@ body {
     gap: 0.75rem;
 }
 
-.dominos-tile {
-    width: 28px;
-    height: 28px;
-    background-color: var(--accent);
-    transform: rotate(45deg);
-    position: relative;
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-}
-
-.dominos-tile::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 1px;
-    height: 100%;
-    background-color: var(--bg-card);
-}
-
-.dominos-tile .dot {
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    background-color: #fff;
-    border-radius: 50%;
-}
-
-.dominos-tile .dot-1 {
-    top: 6px;
-    left: 6px;
-}
-
-.dominos-tile .dot-2 {
-    bottom: 6px;
-    right: 6px;
+.app-logo {
+    height: 32px;
+    width: auto;
+    object-fit: contain;
 }
 
 .logo-area h1 {
