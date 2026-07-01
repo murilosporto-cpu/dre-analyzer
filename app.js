@@ -279,7 +279,7 @@ function parseStoreDRE(rows) {
         const valorVal = parseCurrency(row[colIndex]);
         
         switch (true) {
-            case conta.toUpperCase().includes("RECEITA BRUTA"):
+            case conta.toUpperCase().includes("RECEITA") && conta.toUpperCase().includes("BRUTA"):
                 data.receitaBruta = valorVal;
                 break;
             case conta.toUpperCase().includes("DEVOLU") || conta.toUpperCase().includes("CANCEL"):
@@ -303,7 +303,7 @@ function parseStoreDRE(rows) {
             case conta.toUpperCase().includes("ALIMENT") || conta.toUpperCase().includes("INSUMO"):
                 data.cmvAlimentos = valorVal;
                 break;
-            case conta.toUpperCase().includes("CUSTO DE PESSOAL"):
+            case conta.toUpperCase().includes("PESSOAL") && (conta.toUpperCase().includes("CUSTO") || conta.toUpperCase().includes("FOLHA") || conta.toUpperCase().includes("TOTAL")):
                 data.pessoalTotal = valorVal;
                 break;
             case conta.toUpperCase().includes("SALÁR") || conta.toUpperCase().includes("SALAR") || conta.toUpperCase().includes("ORDENAD"):
@@ -321,7 +321,7 @@ function parseStoreDRE(rows) {
             case conta.toUpperCase().includes("RECIS") || conta.toUpperCase().includes("RESCIS") || conta.toUpperCase().includes("FGTS"):
                 data.rescisao = valorVal;
                 break;
-            case conta.toUpperCase().includes("OCUPA") && conta.toUpperCase().includes("UTIL"):
+            case conta.toUpperCase().includes("OCUPA") && (conta.toUpperCase().includes("UTIL") || conta.toUpperCase().includes("CUSTO") || conta.toUpperCase().includes("TOTAL")):
                 data.ocupacaoTotal = valorVal;
                 break;
             case conta.toUpperCase().includes("ALUGUEL"):
