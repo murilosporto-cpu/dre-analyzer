@@ -325,20 +325,26 @@ body {
     gap: 0.75rem;
 }
 
-/* Store Selector */
-.store-selector-wrapper {
+/* Seletores de Filtro */
+.selectors-container {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    gap: 1.25rem;
     background-color: var(--bg-card);
     padding: 0.75rem 1.25rem;
     border-radius: 8px;
     border: 1px solid var(--border-color);
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
     width: fit-content;
+    flex-wrap: wrap;
 }
 
-.store-selector-wrapper label {
+.selector-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.selector-item label {
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--text-muted);

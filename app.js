@@ -48,6 +48,7 @@ const REFERENCIA_CLUSTERS = {
 // Dados locais processados das lojas
 let lojasProcessadas = {};
 let currentLoja = "";
+let currentPeriod = "";
 
 // Elementos DOM
 const dropZone = document.getElementById('dre-dropzone');
@@ -58,7 +59,7 @@ const removeFileBtn = document.getElementById('remove-file-btn');
 const analyzeBtn = document.getElementById('analyze-btn');
 const resultsSection = document.getElementById('results-section');
 const storeSelect = document.getElementById('store-select');
-const storeSelectorContainer = document.getElementById('store-selector-container');
+const selectorsContainer = document.getElementById('selectors-container');
 
 // Elementos do Relatório
 const kpiFaturamento = document.getElementById('kpi-faturamento');
@@ -152,61 +153,136 @@ analyzeBtn.addEventListener('click', () => {
 // Processamento da Planilha DRE
 function processDREWorkbook(workbook) {
     try {
-    lojasProcessadas = {};
-    const sheetNames = workbook.SheetNames;
-    
-    sheetNames.forEach(sheetName => {
-        // Ignorar abas gerais que não são lojas individuais
-        if (sheetName === "Resumo" || sheetName === "Base" || sheetName.startsWith("DRE ")) {
+        lojasProcessadas = {};
+        const sheetNames = workbook.SheetNames;
+        
+        let allPeriods = new Set();
+        
+        sheetNames.forEach(sheetName => {
+            // Ignorar abas gerais que não são lojas individuais
+            if (sheetName === "Resumo" || sheetName === "Base" || sheetName.startsWith("DRE ")) {
+                return;
+            }
+            
+            const worksheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+            
+            let lojaData = parseStoreDRE(rows);
+            
+            // Verificar se a loja tem faturamento em pelo menos um período
+            let temFaturamento = false;
+            lojaData.periods.forEach(p => {
+                if (lojaData.values[p].receitaBruta > 0) {
+                    temFaturamento = true;
+                    allPeriods.add(p);
+                }
+            });
+            
+            if (temFaturamento) {
+                lojasProcessadas[sheetName] = lojaData;
+            }
+        });
+        
+        const listLojas = Object.keys(lojasProcessadas);
+        
+        if (listLojas.length === 0) {
+            alert("Não foi possível identificar nenhuma aba de loja válida com faturamento positivo na planilha.");
             return;
         }
         
-        const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+        // Atualizar seletor de lojas
+        storeSelect.innerHTML = "";
+        listLojas.forEach(loja => {
+            const option = document.createElement('option');
+            option.value = loja;
+            option.textContent = loja;
+            storeSelect.appendChild(option);
+        });
         
-        let lojaData = parseStoreDRE(rows);
-        if (lojaData.receitaBruta > 0) {
-            lojasProcessadas[sheetName] = lojaData;
+        // Atualizar seletor de períodos
+        const periodSelect = document.getElementById('period-select');
+        periodSelect.innerHTML = "";
+        
+        const sortedPeriods = Array.from(allPeriods);
+        sortedPeriods.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p;
+            option.textContent = p;
+            periodSelect.appendChild(option);
+        });
+        
+        // Mostrar os seletores (loja e período)
+        selectorsContainer.style.display = 'flex';
+        
+        // Definir padrões de inicialização
+        currentLoja = listLojas[0];
+        
+        // Selecionar "Maio" por padrão se disponível, senão o último mês
+        let defaultPeriod = sortedPeriods[sortedPeriods.length - 1];
+        if (sortedPeriods.includes("Maio")) {
+            defaultPeriod = "Maio";
         }
-    });
-    
-    const listLojas = Object.keys(lojasProcessadas);
-    
-    if (listLojas.length === 0) {
-        alert("Não foi possível identificar nenhuma aba de loja válida com faturamento positivo na planilha.");
-        return;
-    }
-    
-    // Atualizar seletor de lojas
-    storeSelect.innerHTML = "";
-    listLojas.forEach(loja => {
-        const option = document.createElement('option');
-        option.value = loja;
-        option.textContent = loja;
-        storeSelect.appendChild(option);
-    });
-    
-    if (listLojas.length > 1) {
-        storeSelectorContainer.style.display = 'flex';
-    } else {
-        storeSelectorContainer.style.display = 'none';
-    }
-    
-    // Mostrar seção de resultados e carregar primeira loja
-    resultsSection.style.display = 'block';
-    currentLoja = listLojas[0];
-    renderAnalysis(currentLoja);
-    
-    // Rolar até os resultados
-    resultsSection.scrollIntoView({ behavior: 'smooth' });
+        
+        periodSelect.value = defaultPeriod;
+        currentPeriod = defaultPeriod;
+        
+        // Mostrar seção de resultados e carregar primeira loja
+        resultsSection.style.display = 'block';
+        renderAnalysis(currentLoja, currentPeriod);
+        
+        // Rolar até os resultados
+        resultsSection.scrollIntoView({ behavior: 'smooth' });
     } catch (err) {
         console.error(err);
         alert("Erro no processamento da DRE: " + err.message);
     }
 }
 
-// Analisar linhas da DRE da Loja
+// Analisar linhas da DRE da Loja e extrair todos os períodos
 function parseStoreDRE(rows) {
+    let result = {
+        periods: [],
+        values: {}
+    };
+    
+    // Encontrar a linha de cabeçalho e a coluna dos meses
+    let monthRowIndex = -1;
+    
+    for (let r = 0; r < Math.min(rows.length, 15); r++) {
+        const row = rows[r];
+        if (!row) continue;
+        for (let c = 0; c < row.length; c++) {
+            const cellVal = String(row[c]).trim();
+            if (["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"].includes(cellVal)) {
+                monthRowIndex = r;
+                break;
+            }
+        }
+        if (monthRowIndex !== -1) break;
+    }
+    
+    if (monthRowIndex === -1) {
+        // Sem cabeçalho de meses, assume coluna 1 como valores fixos
+        result.periods.push("Geral");
+        result.values["Geral"] = parseDREColumn(rows, 1);
+        return result;
+    }
+    
+    const headerRow = rows[monthRowIndex];
+    // Adicionar cada mês encontrado como um período independente
+    for (let c = 0; c < headerRow.length; c++) {
+        const cellVal = String(headerRow[c]).trim();
+        if (["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"].includes(cellVal)) {
+            result.periods.push(cellVal);
+            result.values[cellVal] = parseDREColumn(rows, c);
+        }
+    }
+    
+    return result;
+}
+
+// Processa uma coluna específica de dados para retornar as contas gerenciais daquele mês
+function parseDREColumn(rows, colIndex) {
     let data = {
         receitaBruta: 0,
         receitaLiquida: 0,
@@ -230,48 +306,6 @@ function parseStoreDRE(rows) {
         despComerciais: 0,
         lucroOperacional: 0
     };
-    
-    // Encontrar a linha de cabeçalho e a coluna do mês de Maio
-    let colIndex = 1;
-    let monthRowIndex = -1;
-    
-    for (let r = 0; r < Math.min(rows.length, 15); r++) {
-        const row = rows[r];
-        if (!row) continue;
-        for (let c = 0; c < row.length; c++) {
-            const cellVal = String(row[c]).trim();
-            if (["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"].includes(cellVal)) {
-                monthRowIndex = r;
-                break;
-            }
-        }
-        if (monthRowIndex !== -1) break;
-    }
-    
-    if (monthRowIndex !== -1) {
-        const headerRow = rows[monthRowIndex];
-        let targetCol = -1;
-        for (let c = 0; c < headerRow.length; c++) {
-            if (String(headerRow[c]).trim() === "Maio") {
-                targetCol = c;
-                break;
-            }
-        }
-        
-        if (targetCol === -1) {
-            for (let c = headerRow.length - 1; c >= 0; c--) {
-                const cellVal = String(headerRow[c]).trim();
-                if (["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"].includes(cellVal)) {
-                    targetCol = c;
-                    break;
-                }
-            }
-        }
-        
-        if (targetCol !== -1) {
-            colIndex = targetCol;
-        }
-    }
     
     rows.forEach(row => {
         if (!row || row.length <= colIndex) return;
@@ -382,8 +416,11 @@ function getClusterInfo(faturamentoBruto) {
 }
 
 // Renderizar a Análise da Loja Selecionada
-function renderAnalysis(loja) {
-    const data = lojasProcessadas[loja];
+function renderAnalysis(loja, period) {
+    if (!period) period = currentPeriod;
+    const storeData = lojasProcessadas[loja];
+    if (!storeData) return;
+    const data = storeData.values[period];
     if (!data) return;
     
     const ref = getClusterInfo(data.receitaBruta);
@@ -569,7 +606,13 @@ function formatCurrencyBRL(val) {
 // Listener para Mudança de Loja no Select
 storeSelect.addEventListener('change', (e) => {
     currentLoja = e.target.value;
-    renderAnalysis(currentLoja);
+    renderAnalysis(currentLoja, currentPeriod);
+});
+
+// Listener para Mudança de Período no Select
+document.getElementById('period-select').addEventListener('change', (e) => {
+    currentPeriod = e.target.value;
+    renderAnalysis(currentLoja, currentPeriod);
 });
 
 // Ação de Impressão / PDF
@@ -579,7 +622,9 @@ document.getElementById('print-btn').addEventListener('click', () => {
 
 // Ação de Exportar Markdown
 document.getElementById('export-md-btn').addEventListener('click', () => {
-    const data = lojasProcessadas[currentLoja];
+    const storeData = lojasProcessadas[currentLoja];
+    if (!storeData) return;
+    const data = storeData.values[currentPeriod];
     if (!data) return;
     
     const ref = getClusterInfo(data.receitaBruta);
@@ -597,7 +642,7 @@ document.getElementById('export-md-btn').addEventListener('click', () => {
     
     const markdown = `# 📊 RELATÓRIO DE ANÁLISE GERENCIAL E OPORTUNIDADES
 **Loja Analisada:** ${currentLoja}
-**Mês de Referência:** Maio/2026
+**Mês de Referência:** ${currentPeriod}
 
 ### 1. Diagnóstico Geral (Resumo Executivo)
 A unidade **${currentLoja}** fechou o mês com faturamento bruto de **${formatCurrencyBRL(data.receitaBruta)}** e receita líquida de **${formatCurrencyBRL(data.receitaLiquida)}**. O EBITDA real obtido foi de **${formatCurrencyBRL(data.lucroOperacional)} (${pctEbitdaReal.toFixed(2)}%)**, em comparação com a meta de referência de **${ref.meta_ebitda.toFixed(2)}%**. 
@@ -625,7 +670,7 @@ A unidade **${currentLoja}** fechou o mês com faturamento bruto de **${formatCu
     const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", `relatorio_dre_${currentLoja.replace(/\s+/g, '_').toLowerCase()}.md`);
+    link.setAttribute("download", `relatorio_dre_${currentLoja.replace(/\s+/g, '_').toLowerCase()}_${currentPeriod.toLowerCase()}.md`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
