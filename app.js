@@ -456,85 +456,109 @@ function parseDREColumn(rows, colIndex) {
     
     rows.forEach(row => {
         if (!row || row.length <= colIndex) return;
-        const conta = String(row[0]).trim();
+        const rawConta = String(row[0]).trim();
+        const contaUpper = rawConta.toUpperCase();
         const valorVal = parseCurrency(row[colIndex]);
         const absVal = Math.abs(valorVal);
         
         switch (true) {
-            case conta.toUpperCase().includes("RECEITA") && conta.toUpperCase().includes("BRUTA"):
+            // 1. Receitas
+            case contaUpper.includes("RECEITA") && contaUpper.includes("BRUTA"):
+            case contaUpper.startsWith("=") && (contaUpper.includes("RECEITA BRUTA") || contaUpper.includes("FATURAMENTO BRUTO") || contaUpper.includes("VENDAS BRUTAS")):
                 data.receitaBruta = valorVal;
                 break;
-            case conta.toUpperCase().includes("DEVOLU") || conta.toUpperCase().includes("CANCEL"):
+            case contaUpper.includes("DEVOLU") || contaUpper.includes("CANCEL"):
                 data.devolucoes = valorVal;
                 break;
-            case conta.toUpperCase().includes("RECEITA") && (conta.toUpperCase().includes("LIQ") || conta.toUpperCase().includes("LÍQ") || conta.toUpperCase().includes("LQ") || conta.toUpperCase().includes("LÝQ") || conta.toUpperCase().includes("LQ")):
+            case (contaUpper.includes("RECEITA") && (contaUpper.includes("LIQ") || contaUpper.includes("LÍQ") || contaUpper.includes("LQ") || contaUpper.includes("LÝQ") || contaUpper.includes("LQ"))):
+            case contaUpper === "= RECEITA LÍQUIDA" || contaUpper === "= RECEITA LIQUIDA":
                 data.receitaLiquida = valorVal;
                 break;
-            case conta.toUpperCase().includes("CMV") || conta.toUpperCase().includes("CUSTO DE MERCADORIA VENDIDA") || conta.toUpperCase().includes("CUSTO DA MERCADORIA VENDIDA"):
+
+            // 2. CMV Total
+            case contaUpper === "= CMV" || contaUpper === "= CUSTO DE MERCADORIA VENDIDA" || contaUpper === "= CUSTO DA MERCADORIA VENDIDA" || contaUpper === "= CUSTO DE MERCADORIA VENDIDA (CMV)" || contaUpper === "= CUSTO DA MERCADORIA VENDIDA (CMV)":
+            case (contaUpper.includes("CMV") || contaUpper.includes("CUSTO DE MERCADORIA VENDIDA") || contaUpper.includes("CUSTO DA MERCADORIA VENDIDA")) && !["BEBIDAS", "MASSAS", "LATIC", "MUSSAR", "ALIMENT", "INSUMO"].some(sub => contaUpper.includes(sub)):
                 data.cmvTotal = valorVal;
                 break;
-            case conta.toUpperCase().includes("BEBIDAS"):
+
+            // 3. CMV Subcontas
+            case contaUpper.includes("BEBIDAS"):
                 data.cmvBebidas = valorVal;
                 break;
-            case conta.toUpperCase().includes("MASSAS"):
+            case contaUpper.includes("MASSAS"):
                 data.cmvMassas = valorVal;
                 break;
-            case conta.toUpperCase().includes("LATIC") || conta.toUpperCase().includes("LATÍC") || conta.toUpperCase().includes("MUSSAR"):
+            case contaUpper.includes("LATIC") || contaUpper.includes("LATÍC") || contaUpper.includes("MUSSAR"):
                 data.cmvLaticinios = valorVal;
                 break;
-            case conta.toUpperCase().includes("ALIMENT") || conta.toUpperCase().includes("INSUMO"):
+            case contaUpper.includes("ALIMENT") || contaUpper.includes("INSUMO"):
                 data.cmvAlimentos = valorVal;
                 break;
-            case conta.toUpperCase().includes("SALÁR") || conta.toUpperCase().includes("SALAR") || conta.toUpperCase().includes("ORDENAD"):
+
+            // 4. Pessoal Total
+            case contaUpper === "= PESSOAL" || contaUpper === "= CUSTO DE PESSOAL" || contaUpper === "= CUSTO DE PESSOAL (FOLHA)" || contaUpper === "= FOLHA":
+                data.pessoalTotal = valorVal;
+                break;
+
+            // 5. Pessoal Subcontas
+            case contaUpper.includes("SALÁR") || contaUpper.includes("SALAR") || contaUpper.includes("ORDENAD"):
                 data.salarios = valorVal;
                 sumPessoal += absVal;
                 break;
-            case conta.toUpperCase().includes("HORAS EXTRAS"):
+            case contaUpper.includes("HORAS EXTRAS"):
                 data.horasExtras = valorVal;
                 sumPessoal += absVal;
                 break;
-            case conta.toUpperCase().includes("ENCARGO"):
+            case contaUpper.includes("ENCARGO"):
                 data.encargos = valorVal;
                 sumPessoal += absVal;
                 break;
-            case conta.toUpperCase().includes("BENEF") || conta.toUpperCase().includes("VALE TRANSP") || conta.toUpperCase().includes("VALE REFEI") || conta.toUpperCase().includes("LANCHES") || conta.toUpperCase().includes("ASSISTENCIA M") || conta.toUpperCase().includes("ASSISTÊNCIA M"):
+            case contaUpper.includes("BENEF") || contaUpper.includes("VALE TRANSP") || contaUpper.includes("VALE REFEI") || contaUpper.includes("LANCHES") || contaUpper.includes("ASSISTENCIA M") || contaUpper.includes("ASSISTÊNCIA M"):
                 data.beneficios += valorVal;
                 sumPessoal += absVal;
                 break;
-            case conta.toUpperCase().includes("RECIS") || conta.toUpperCase().includes("RESCIS") || conta.toUpperCase().includes("FGTS") || conta.toUpperCase().includes("FÉRIAS") || conta.toUpperCase().includes("FERIAS"):
+            case contaUpper.includes("RECIS") || contaUpper.includes("RESCIS") || contaUpper.includes("FGTS") || contaUpper.includes("FÉRIAS") || contaUpper.includes("FERIAS"):
                 data.rescisao += valorVal;
                 sumPessoal += absVal;
                 break;
-            case conta.toUpperCase().includes("PRÓ-LABORE") || conta.toUpperCase().includes("PRO-LABORE") || conta.toUpperCase().includes("OUTROS - PESSOAL"):
+            case contaUpper.includes("PRÓ-LABORE") || contaUpper.includes("PRO-LABORE") || contaUpper.includes("OUTROS - PESSOAL"):
                 sumPessoal += absVal;
                 break;
-            case conta.toUpperCase().includes("ALUGUEL") || conta.toUpperCase().includes("ALUGUÉL"):
+
+            // 6. Ocupação & Utilidades
+            case contaUpper === "= OCUPAÇÃO" || contaUpper === "= OCUPACAO" || contaUpper === "= CUSTO DE OCUPAÇÃO" || contaUpper === "= ALUGUEL" || contaUpper === "= ALUGUÉL":
+            case (contaUpper.includes("ALUGUEL") || contaUpper.includes("ALUGUÉL")) && !contaUpper.includes("MAQUINA") && !contaUpper.includes("MÁQUINA"):
                 data.aluguel = valorVal;
                 data.ocupacaoTotal = valorVal;
                 break;
-            case conta.toUpperCase().includes("ENERGIA"):
+            case contaUpper.includes("ENERGIA"):
                 data.energia = valorVal;
                 break;
-            case conta.toUpperCase().includes("GÁS") || conta.toUpperCase().includes("GAS"):
+            case contaUpper.includes("GÁS") || contaUpper.includes("GAS"):
                 data.gas = valorVal;
                 break;
-            case conta.toUpperCase().includes("ÁGUA") || conta.toUpperCase().includes("AGUA"):
+            case contaUpper.includes("ÁGUA") || contaUpper.includes("AGUA"):
                 data.agua = valorVal;
                 break;
-            case conta.toUpperCase().includes("CUSTO UTILIDADES") || conta.toUpperCase().includes("= CUSTO UTILIDADES"):
-                data.ocupacaoTotal = valorVal; // Usamos utilidades + aluguel como total de ocupação no app
+            case contaUpper.includes("CUSTO UTILIDADES") || contaUpper.includes("= CUSTO UTILIDADES"):
+                data.ocupacaoTotal = valorVal;
                 break;
-            case conta.toUpperCase().includes("DESPESAS COMERCIAIS") || conta.toUpperCase().includes("MARKETING") || conta.toUpperCase().includes("PROPAGANDA"):
+
+            // 7. Despesas Comerciais & EBITDA
+            case contaUpper.includes("DESPESAS COMERCIAIS") || contaUpper.includes("MARKETING") || contaUpper.includes("PROPAGANDA"):
                 data.despComerciais += valorVal;
                 break;
-            case conta.toUpperCase().includes("RESULTADO OPERACIONAL") || conta.toUpperCase().includes("EBITDA") || conta.toUpperCase().includes("LUCRO OPERACIONAL"):
+            case contaUpper === "= EBITDA" || contaUpper === "= RESULTADO OPERACIONAL" || contaUpper === "= LUCRO OPERACIONAL" || contaUpper === "= LUCRO OPERACIONAL (EBITDA)":
+            case (contaUpper.includes("RESULTADO OPERACIONAL") || contaUpper.includes("EBITDA") || contaUpper.includes("LUCRO OPERACIONAL")):
                 data.lucroOperacional = valorVal;
                 break;
         }
     });
     
     // Atualizar pessoalTotal com a soma das subcontas se não tiver sido extraído diretamente
-    data.pessoalTotal = -sumPessoal;
+    if (data.pessoalTotal === 0) {
+        data.pessoalTotal = -sumPessoal;
+    }
     
     // Se o faturamento líquido ou bruto estiver zerado, tenta forçar leitura de outras abas
     if (data.receitaLiquida === 0 && data.receitaBruta > 0) {
