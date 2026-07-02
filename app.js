@@ -172,9 +172,52 @@ analyzeBtn.addEventListener('click', () => {
     }
 });
 
+// Detecta o nome da loja a partir do conteúdo das primeiras linhas da aba caso o nome da aba seja genérico
+function detectStoreNameFromCells(rows, defaultName) {
+    const validStores = [
+        { key: "ASA NORTE", patterns: ["asa norte", "33 norte", "33_norte"] },
+        { key: "ASA SUL", patterns: ["asa sul"] },
+        { key: "SUDOESTE", patterns: ["sudoeste"] },
+        { key: "GOIÂNIA", patterns: ["goiania", "goiania i", "goiania ii", "goiânia"] },
+        { key: "GUARÁ", patterns: ["guara", "guará"] },
+        { key: "FIGUEIRAS", patterns: ["figueiras"] },
+        { key: "RIO BRANCO", patterns: ["rio branco"] },
+        { key: "SÃO LUIS", patterns: ["sao luis", "são luis", "são luís"] },
+        { key: "AMICO", patterns: ["amico"] }
+    ];
+    
+    // Varre as primeiras 15 linhas
+    for (let r = 0; r < Math.min(rows.length, 15); r++) {
+        const row = rows[r];
+        if (!row) continue;
+        for (let c = 0; c < row.length; c++) {
+            const cellVal = String(row[c]).trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            if (!cellVal) continue;
+            
+            // Verifica se bate com algum dos nossos padrões de lojas
+            for (let store of validStores) {
+                for (let pattern of store.patterns) {
+                    if (cellVal.includes(pattern) || pattern.includes(cellVal)) {
+                        // Retorna o nome formatado da loja
+                        if (cellVal.includes("goiania ii") || cellVal.includes("goiania 2") || cellVal.includes("goiânia ii")) {
+                            return "GOIÂNIA II";
+                        }
+                        if (cellVal.includes("goiania i") || cellVal.includes("goiania 1") || cellVal.includes("goiânia i") || cellVal.includes("goiania")) {
+                            return "GOIÂNIA I";
+                        }
+                        return store.key;
+                    }
+                }
+            }
+        }
+    }
+    return defaultName;
+}
+
 // Processamento da Planilha DRE
 function processDREWorkbook(workbook) {
     try {
+        // Apaga as informações de planilhas carregadas anteriormente
         lojasProcessadas = {};
         const sheetNames = workbook.SheetNames;
         
@@ -188,13 +231,25 @@ function processDREWorkbook(workbook) {
         let allPeriods = new Set();
         
         sheetNames.forEach(sheetName => {
-            // Ignorar abas gerais que não são lojas individuais
-            if (sheetName === "Resumo" || sheetName === "Base" || sheetName.startsWith("DRE ")) {
-                return;
-            }
-            
             const worksheet = workbook.Sheets[sheetName];
             const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+            
+            // Tentar identificar o nome da loja
+            let finalStoreName = sheetName.trim();
+            
+            // Se o nome da aba for genérico, tenta ler a partir das primeiras linhas da planilha
+            const isGenericTab = ["sheet", "plan", "dre", "dados", "tabela", "excel", "abas", "geral", "aba"].some(g => finalStoreName.toLowerCase().includes(g)) || finalStoreName.length <= 3;
+            if (isGenericTab) {
+                const detectedName = detectStoreNameFromCells(rows, sheetName);
+                if (detectedName) {
+                    finalStoreName = detectedName;
+                }
+            }
+            
+            // Ignorar abas gerais que não são lojas individuais
+            if (finalStoreName === "Resumo" || finalStoreName === "Base" || finalStoreName.startsWith("DRE ")) {
+                return;
+            }
             
             let lojaData = parseStoreDRE(rows);
             
@@ -215,7 +270,7 @@ function processDREWorkbook(workbook) {
             });
             
             if (temFaturamento) {
-                lojasProcessadas[sheetName] = lojaData;
+                lojasProcessadas[finalStoreName] = lojaData;
             }
         });
         
