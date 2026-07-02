@@ -50,6 +50,7 @@ let lojasProcessadas = {};
 let currentLoja = "";
 let currentPeriod = "";
 let activeWorkbook = null;
+let activePeriods = [];
 
 // Elementos DOM
 const dropZone = document.getElementById('dre-dropzone');
@@ -324,8 +325,11 @@ function processDREWorkbook(workbook) {
         const periodSelect = document.getElementById('period-select');
         periodSelect.innerHTML = "";
         
-        const sortedPeriods = Array.from(allPeriods);
-        sortedPeriods.forEach(p => {
+        activePeriods = Array.from(allPeriods).sort((a, b) => {
+            return monthOrder.indexOf(a) - monthOrder.indexOf(b);
+        });
+        
+        activePeriods.forEach(p => {
             const option = document.createElement('option');
             option.value = p;
             option.textContent = p;
@@ -341,8 +345,8 @@ function processDREWorkbook(workbook) {
         currentLoja = matchedStore;
         
         // Selecionar "Maio" por padrão se disponível, senão o último mês
-        let defaultPeriod = sortedPeriods[sortedPeriods.length - 1];
-        if (sortedPeriods.includes("Maio")) {
+        let defaultPeriod = activePeriods[activePeriods.length - 1];
+        if (activePeriods.includes("Maio")) {
             defaultPeriod = "Maio";
         }
         
@@ -725,10 +729,7 @@ function renderAnalysis(loja, period) {
     ]);
 
     // 5. Montar Comparativo Mensal (Real)
-    const monthOrder = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-    const sortedActivePeriods = [...periods].sort((a, b) => {
-        return monthOrder.indexOf(a) - monthOrder.indexOf(b);
-    });
+    const sortedActivePeriods = activePeriods;
 
     const headersRow = document.getElementById('monthly-table-headers');
     if (headersRow) {
