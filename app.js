@@ -453,12 +453,24 @@ function parseDREColumn(rows, colIndex) {
         linhasDRE: [] // Armazena a lista de todas as contas gerenciais encontradas no arquivo (= e -)
     };
     
+    // Detecta se o arquivo do Excel utiliza o padrão de "=" na frente das contas totais/gerenciais
+    let hasEqualsPrefix = false;
+    for (let i = 0; i < Math.min(rows.length, 100); i++) {
+        const row = rows[i];
+        if (row && row[0] && String(row[0]).trim().startsWith("=")) {
+            hasEqualsPrefix = true;
+            break;
+        }
+    }
+
     let sumPessoal = 0;
     
     rows.forEach(row => {
         if (!row || row.length <= colIndex) return;
         const rawConta = String(row[0]).trim();
         const contaUpper = rawConta.toUpperCase();
+        const startsWithEquals = rawConta.startsWith("=");
+        const cleanContaUpper = rawConta.replace(/^=\s*/, "").toUpperCase();
         const valorVal = parseCurrency(row[colIndex]);
         const absVal = Math.abs(valorVal);
         
@@ -474,21 +486,23 @@ function parseDREColumn(rows, colIndex) {
         
         switch (true) {
             // 1. Receitas
-            case contaUpper.includes("RECEITA") && contaUpper.includes("BRUTA"):
-            case contaUpper.startsWith("=") && (contaUpper.includes("RECEITA BRUTA") || contaUpper.includes("FATURAMENTO BRUTO") || contaUpper.includes("VENDAS BRUTAS")):
+            case (hasEqualsPrefix && startsWithEquals && (cleanContaUpper.includes("RECEITA BRUTA") || cleanContaUpper.includes("FATURAMENTO BRUTO") || cleanContaUpper.includes("VENDAS BRUTAS") || cleanContaUpper.includes("RECEITA DE VENDAS"))) ||
+                 (!hasEqualsPrefix && contaUpper.includes("RECEITA") && contaUpper.includes("BRUTA")):
                 data.receitaBruta = valorVal;
                 break;
+                
             case contaUpper.includes("DEVOLU") || contaUpper.includes("CANCEL"):
                 data.devolucoes = valorVal;
                 break;
-            case (contaUpper.includes("RECEITA") && (contaUpper.includes("LIQ") || contaUpper.includes("LÍQ") || contaUpper.includes("LQ") || contaUpper.includes("LÝQ") || contaUpper.includes("LQ"))):
-            case contaUpper === "= RECEITA LÍQUIDA" || contaUpper === "= RECEITA LIQUIDA":
+                
+            case (hasEqualsPrefix && startsWithEquals && (cleanContaUpper.includes("RECEITA LIQUIDA") || cleanContaUpper.includes("RECEITA LÍQUIDA") || cleanContaUpper.includes("RECEITA OPERACIONAL LIQUIDA") || cleanContaUpper.includes("RECEITA OPERACIONAL LÍQUIDA"))) ||
+                 (!hasEqualsPrefix && contaUpper.includes("RECEITA") && (contaUpper.includes("LIQ") || contaUpper.includes("LÍQ"))):
                 data.receitaLiquida = valorVal;
                 break;
 
             // 2. CMV Total
-            case contaUpper === "= CMV" || contaUpper === "= CUSTO DE MERCADORIA VENDIDA" || contaUpper === "= CUSTO DA MERCADORIA VENDIDA" || contaUpper === "= CUSTO DE MERCADORIA VENDIDA (CMV)" || contaUpper === "= CUSTO DA MERCADORIA VENDIDA (CMV)":
-            case (contaUpper.includes("CMV") || contaUpper.includes("CUSTO DE MERCADORIA VENDIDA") || contaUpper.includes("CUSTO DA MERCADORIA VENDIDA")) && !["BEBIDAS", "MASSAS", "LATIC", "MUSSAR", "ALIMENT", "INSUMO"].some(sub => contaUpper.includes(sub)):
+            case (hasEqualsPrefix && startsWithEquals && (cleanContaUpper === "CMV" || cleanContaUpper.includes("CUSTO DE MERCADORIA VENDIDA") || cleanContaUpper.includes("CUSTO DA MERCADORIA VENDIDA"))) ||
+                 (!hasEqualsPrefix && (contaUpper.includes("CMV") || contaUpper.includes("CUSTO DE MERCADORIA VENDIDA") || contaUpper.includes("CUSTO DA MERCADORIA VENDIDA")) && !["BEBIDAS", "MASSAS", "LATIC", "MUSSAR", "ALIMENT", "INSUMO"].some(sub => contaUpper.includes(sub))):
                 data.cmvTotal = valorVal;
                 break;
 
@@ -507,7 +521,7 @@ function parseDREColumn(rows, colIndex) {
                 break;
 
             // 4. Pessoal Total
-            case contaUpper === "= PESSOAL" || contaUpper === "= CUSTO DE PESSOAL" || contaUpper === "= CUSTO DE PESSOAL (FOLHA)" || contaUpper === "= FOLHA":
+            case (hasEqualsPrefix && startsWithEquals && (cleanContaUpper === "PESSOAL" || cleanContaUpper.includes("CUSTO DE PESSOAL") || cleanContaUpper.includes("FOLHA"))):
                 data.pessoalTotal = valorVal;
                 break;
 
@@ -537,18 +551,18 @@ function parseDREColumn(rows, colIndex) {
                 break;
 
             // 6. Ocupação & Utilidades
-            case contaUpper === "= OCUPAÇÃO" || contaUpper === "= OCUPACAO" || contaUpper === "= CUSTO DE OCUPAÇÃO" || contaUpper === "= ALUGUEL" || contaUpper === "= ALUGUÉL":
-            case (contaUpper.includes("ALUGUEL") || contaUpper.includes("ALUGUÉL")) && !contaUpper.includes("MAQUINA") && !contaUpper.includes("MÁQUINA"):
+            case (hasEqualsPrefix && startsWithEquals && (cleanContaUpper.includes("OCUPAÇ") || cleanContaUpper.includes("OCUPAC") || cleanContaUpper.includes("ALUGUEL") || cleanContaUpper.includes("ALUGUÉL"))) ||
+                 (!hasEqualsPrefix && (contaUpper.includes("ALUGUEL") || contaUpper.includes("ALUGUÉL")) && !contaUpper.includes("MAQUINA") && !contaUpper.includes("MÁQUINA")):
                 data.aluguel = valorVal;
                 data.ocupacaoTotal = valorVal;
                 break;
-            case contaUpper.includes("ENERGIA"):
+            case contaUpper.includes("ENERGIA") && !startsWithEquals:
                 data.energia = valorVal;
                 break;
-            case contaUpper.includes("GÁS") || contaUpper.includes("GAS"):
+            case (contaUpper.includes("GÁS") || contaUpper.includes("GAS")) && !startsWithEquals:
                 data.gas = valorVal;
                 break;
-            case contaUpper.includes("ÁGUA") || contaUpper.includes("AGUA"):
+            case (contaUpper.includes("ÁGUA") || contaUpper.includes("AGUA")) && !startsWithEquals:
                 data.agua = valorVal;
                 break;
             case contaUpper.includes("CUSTO UTILIDADES") || contaUpper.includes("= CUSTO UTILIDADES"):
@@ -559,8 +573,8 @@ function parseDREColumn(rows, colIndex) {
             case contaUpper.includes("DESPESAS COMERCIAIS") || contaUpper.includes("MARKETING") || contaUpper.includes("PROPAGANDA"):
                 data.despComerciais += valorVal;
                 break;
-            case contaUpper === "= EBITDA" || contaUpper === "= RESULTADO OPERACIONAL" || contaUpper === "= LUCRO OPERACIONAL" || contaUpper === "= LUCRO OPERACIONAL (EBITDA)":
-            case (contaUpper.includes("RESULTADO OPERACIONAL") || contaUpper.includes("EBITDA") || contaUpper.includes("LUCRO OPERACIONAL")):
+            case (hasEqualsPrefix && startsWithEquals && (cleanContaUpper === "EBITDA" || cleanContaUpper.includes("RESULTADO OPERACIONAL") || cleanContaUpper.includes("LUCRO OPERACIONAL"))) ||
+                 (!hasEqualsPrefix && (contaUpper.includes("RESULTADO OPERACIONAL") || contaUpper.includes("EBITDA") || contaUpper.includes("LUCRO OPERACIONAL"))):
                 data.lucroOperacional = valorVal;
                 break;
         }
