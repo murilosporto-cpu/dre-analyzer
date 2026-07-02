@@ -70,12 +70,22 @@
                 </div>
             </div>
 
-            <!-- Seletores de Loja e Mês/Período -->
+            <!-- Seletores de Loja, Ano e Mês/Período -->
             <div class="selectors-container" id="selectors-container" style="display: none;">
                 <div class="selector-item" id="store-selector-wrapper">
-                    <label for="store-select">Visualizar Loja:</label>
+                    <label for="store-select">Loja:</label>
                     <div class="custom-select">
                         <select id="store-select"></select>
+                    </div>
+                </div>
+                <div class="selector-item" id="year-selector-wrapper">
+                    <label for="year-select">Ano:</label>
+                    <div class="custom-select">
+                        <select id="year-select">
+                            <option value="2026" selected>2026</option>
+                            <option value="2025">2025</option>
+                            <option value="2024">2024</option>
+                        </select>
                     </div>
                 </div>
                 <div class="selector-item" id="period-selector-wrapper">

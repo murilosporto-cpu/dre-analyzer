@@ -406,6 +406,11 @@ body {
     color: var(--danger);
 }
 
+.kpi-status-badge.warning {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: var(--warning);
+}
+
 /* Diagnostic Card */
 .diagnostic-card h3 {
     font-size: 1.1rem;

@@ -208,6 +208,18 @@ function processDREWorkbook(workbook) {
             }
         }
         
+        // Tentar pré-selecionar o Ano baseando-se no nome do arquivo
+        const yearSelect = document.getElementById('year-select');
+        if (yearSelect) {
+            if (fileNameLower.includes("2024")) {
+                yearSelect.value = "2024";
+            } else if (fileNameLower.includes("2025")) {
+                yearSelect.value = "2025";
+            } else if (fileNameLower.includes("2026")) {
+                yearSelect.value = "2026";
+            }
+        }
+        
         // Atualizar seletor de lojas
         storeSelect.innerHTML = "";
         listLojas.forEach(loja => {
@@ -478,6 +490,9 @@ function renderAnalysis(loja, period) {
     if (pctEbitdaReal >= ref.meta_ebitda) {
         kpiEbitdaStatus.textContent = "Saudável";
         kpiEbitdaStatus.classList.add('healthy');
+    } else if (pctEbitdaReal > 0) {
+        kpiEbitdaStatus.textContent = "Atenção";
+        kpiEbitdaStatus.classList.add('warning');
     } else {
         kpiEbitdaStatus.textContent = "Crítico";
         kpiEbitdaStatus.classList.add('critical');
@@ -487,9 +502,9 @@ function renderAnalysis(loja, period) {
     let diagnostic = "";
     if (pctEbitdaReal >= ref.meta_ebitda) {
         diagnostic = `A unidade **${loja}** apresentou uma performance **muito saudável** neste mês. O Lucro Operacional (EBITDA) real atingiu **${pctEbitdaReal.toFixed(2)}%**, superando a referência ideal de **${ref.meta_ebitda.toFixed(2)}%** estabelecida para o cluster **${ref.nome}**. O principal fator de sucesso foi o controle rigoroso do CMV (CMV real de ${((Math.abs(data.cmvTotal) / recLiquidaDiv) * 100).toFixed(2)}%), neutralizando desvios menores na folha de pessoal.`;
-    } else {
+    } else if (pctEbitdaReal > 0) {
         const gap = ref.meta_ebitda - pctEbitdaReal;
-        diagnostic = `A unidade **${loja}** encontra-se em cenário **crítico de rentabilidade**, com EBITDA de **${pctEbitdaReal.toFixed(2)}%** (um gap negativo de **${gap.toFixed(2)} p.p.** em relação à meta de **${ref.meta_ebitda.toFixed(2)}%**). Os principais ralos identificados na DRE que explicam essa queda de margem são: `;
+        diagnostic = `A unidade **${loja}** apresentou resultado **positivo, mas em atenção**, com EBITDA de **${pctEbitdaReal.toFixed(2)}%** (um gap de **${gap.toFixed(2)} p.p.** abaixo da meta de **${ref.meta_ebitda.toFixed(2)}%** estabelecida para o cluster **${ref.nome}**). Os desvios que explicam esse resultado são: `;
         
         let ralos = [];
         const pctRealCMV = (Math.abs(data.cmvTotal) / recLiquidaDiv) * 100;
@@ -499,7 +514,23 @@ function renderAnalysis(loja, period) {
         
         const pctRealPessoal = (Math.abs(data.pessoalTotal) / recLiquidaDiv) * 100;
         if (pctRealPessoal > Math.abs(ref.meta_pessoal)) {
-            ralos.push(`descontrole de pessoal (${pctRealPessoal.toFixed(2)}% vs. ${Math.abs(ref.meta_pessoal).toFixed(2)}% ideal) com alta dependência de horas extras`);
+            ralos.push(`descontrole de pessoal (${pctRealPessoal.toFixed(2)}% vs. ${Math.abs(ref.meta_pessoal).toFixed(2)}% ideal)`);
+        }
+        
+        diagnostic += ralos.join(" e ") + ". É necessário focar nas oportunidades de economia para atingir a meta do cluster.";
+    } else {
+        const gap = ref.meta_ebitda - pctEbitdaReal;
+        diagnostic = `A unidade **${loja}** encontra-se em cenário **crítico de rentabilidade** com EBITDA negativo de **${pctEbitdaReal.toFixed(2)}%** (um gap de **${gap.toFixed(2)} p.p.** em relação à meta de **${ref.meta_ebitda.toFixed(2)}%**). Os principais ralos identificados na DRE que explicam essa queda de margem são: `;
+        
+        let ralos = [];
+        const pctRealCMV = (Math.abs(data.cmvTotal) / recLiquidaDiv) * 100;
+        if (pctRealCMV > Math.abs(ref.meta_cmv)) {
+            ralos.push(`estouro no CMV (${pctRealCMV.toFixed(2)}% vs. ${Math.abs(ref.meta_cmv).toFixed(2)}% ideal)`);
+        }
+        
+        const pctRealPessoal = (Math.abs(data.pessoalTotal) / recLiquidaDiv) * 100;
+        if (pctRealPessoal > Math.abs(ref.meta_pessoal)) {
+            ralos.push(`descontrole de pessoal (${pctRealPessoal.toFixed(2)}% vs. ${Math.abs(ref.meta_pessoal).toFixed(2)}% ideal)`);
         }
         
         diagnostic += ralos.join(" e ") + ". Ações imediatas de controle operacional são indispensáveis para reverter o cenário.";
@@ -640,6 +671,11 @@ storeSelect.addEventListener('change', (e) => {
 // Listener para Mudança de Período no Select
 document.getElementById('period-select').addEventListener('change', (e) => {
     currentPeriod = e.target.value;
+    renderAnalysis(currentLoja, currentPeriod);
+});
+
+// Listener para Mudança de Ano no Select
+document.getElementById('year-select').addEventListener('change', (e) => {
     renderAnalysis(currentLoja, currentPeriod);
 });
 
