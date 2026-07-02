@@ -591,6 +591,21 @@ body {
     font-weight: 500;
 }
 
+/* Otimização de tamanho para a tabela comparativa mensal caber na tela */
+.monthly-table {
+    font-size: 0.8rem !important;
+    width: 100%;
+}
+.monthly-table th {
+    padding: 0.6rem 0.4rem !important;
+    font-size: 0.78rem !important;
+    white-space: nowrap;
+}
+.monthly-table td {
+    padding: 0.6rem 0.4rem !important;
+    white-space: nowrap;
+}
+
 /* Impressão / PDF */
 @media print {
     body {
