@@ -585,6 +585,12 @@ body {
     animation: fadeIn 0.4s ease-out forwards;
 }
 
+/* Valores negativos em DRE */
+.negative-value {
+    color: var(--danger) !important;
+    font-weight: 500;
+}
+
 /* Impressão / PDF */
 @media print {
     body {

@@ -723,6 +723,78 @@ function renderAnalysis(loja, period) {
         `**Boracha e Vedação de Câmaras:** Agendar manutenção corretiva para verificar as portas das câmaras frias e do freezer de forma a evitar perda de temperatura e estouro na conta de energia.`,
         `**Negociação de Aluguel:** Avaliar renegociação com o locador ou expansão das vendas online para melhor diluição dos custos fixos de ocupação.`
     ]);
+
+    // 5. Montar Comparativo Mensal (Real)
+    const monthOrder = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const sortedActivePeriods = [...periods].sort((a, b) => {
+        return monthOrder.indexOf(a) - monthOrder.indexOf(b);
+    });
+
+    const headersRow = document.getElementById('monthly-table-headers');
+    if (headersRow) {
+        headersRow.innerHTML = "<th>Conta Gerencial</th>";
+        sortedActivePeriods.forEach(p => {
+            headersRow.innerHTML += `<th class="text-right">${p}</th>`;
+        });
+    }
+
+    const rowsConfig = [
+        { label: "Faturamento Bruto", getValue: (d) => d.receitaBruta, format: "currency" },
+        { label: "Receita Líquida", getValue: (d) => d.receitaLiquida, format: "currency" },
+        { label: "Custo de Mercadoria Vendida (CMV)", getValue: (d) => -Math.abs(d.cmvTotal), format: "currency" },
+        { label: "Custo de Pessoal (Folha)", getValue: (d) => -Math.abs(d.pessoalTotal), format: "currency" },
+        { label: "Ocupação (Aluguel)", getValue: (d) => -Math.abs(d.aluguel), format: "currency" },
+        { label: "Utilidades (Energia, Gás, Água)", getValue: (d) => -Math.abs(d.energia + d.gas + d.agua), format: "currency" },
+        { label: "EBITDA / Lucro Operacional", getValue: (d) => d.lucroOperacional, format: "currency" },
+        { 
+            label: "Margem EBITDA (%)", 
+            getValue: (d) => {
+                const div = d.receitaLiquida > 0 ? d.receitaLiquida : 1;
+                return (d.lucroOperacional / div) * 100;
+            }, 
+            format: "percent" 
+        }
+    ];
+
+    const monthlyBody = document.getElementById('monthly-comparison-body');
+    if (monthlyBody) {
+        monthlyBody.innerHTML = "";
+        
+        rowsConfig.forEach(row => {
+            const tr = document.createElement('tr');
+            
+            if (row.label.includes("EBITDA")) {
+                tr.style.fontWeight = "bold";
+                tr.style.backgroundColor = "rgba(0, 100, 145, 0.05)";
+            }
+            
+            tr.innerHTML = `<td><strong>${row.label}</strong></td>`;
+            
+            sortedActivePeriods.forEach(p => {
+                const dataVal = storeData.values[p];
+                let formattedVal = "-";
+                
+                if (dataVal) {
+                    const val = row.getValue(dataVal);
+                    if (row.format === "currency") {
+                        formattedVal = formatCurrencyBRL(val);
+                        if (val < 0) {
+                            formattedVal = `<span class="negative-value">${formattedVal}</span>`;
+                        }
+                    } else {
+                        formattedVal = `${val.toFixed(2)}%`;
+                        if (val < 0) {
+                            formattedVal = `<span class="negative-value">${formattedVal}</span>`;
+                        }
+                    }
+                }
+                
+                tr.innerHTML += `<td class="text-right">${formattedVal}</td>`;
+            });
+            
+            monthlyBody.appendChild(tr);
+        });
+    }
 }
 
 // Helper para Adicionar Cards de Ação
