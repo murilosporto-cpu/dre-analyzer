@@ -189,6 +189,7 @@ body {
     height: 100%;
     opacity: 0;
     cursor: pointer;
+    pointer-events: none; /* Permite que a drop-zone capture os cliques e arraste de arquivos sem interferência */
 }
 
 /* File Info Bar */

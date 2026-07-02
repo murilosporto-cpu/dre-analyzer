@@ -72,7 +72,15 @@ const diagnosticText = document.getElementById('diagnostic-text');
 const tableBody = document.getElementById('comparison-table-body');
 const actionPlanContainer = document.getElementById('action-plan-container');
 
-// Eventos de Arrastar e Soltar
+// Prevenir comportamento padrão do navegador de abrir arquivos arrastados para fora da zona
+window.addEventListener("dragover", (e) => {
+    e.preventDefault();
+}, false);
+window.addEventListener("drop", (e) => {
+    e.preventDefault();
+}, false);
+
+// Eventos de Arrastar e Soltar na Zona de Upload
 dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
     dropZone.classList.add('dragover');
@@ -88,6 +96,11 @@ dropZone.addEventListener('drop', (e) => {
     if (e.dataTransfer.files.length > 0) {
         handleFileSelect(e.dataTransfer.files[0]);
     }
+});
+
+// Clique na Zona de Upload redireciona para o seletor invisível
+dropZone.addEventListener('click', () => {
+    fileInput.click();
 });
 
 fileInput.addEventListener('change', (e) => {
