@@ -262,7 +262,9 @@ function processDREWorkbook(workbook) {
         });
         
         // Mostrar os seletores (loja e período)
-        selectorsContainer.style.display = 'flex';
+        if (selectorsContainer) {
+            selectorsContainer.style.display = 'flex';
+        }
         
         // Definir padrões de inicialização
         currentLoja = matchedStore;
@@ -686,11 +688,14 @@ document.getElementById('period-select').addEventListener('change', (e) => {
 });
 
 // Listener para Mudança de Ano no Select
-document.getElementById('year-select').addEventListener('change', (e) => {
-    if (activeWorkbook) {
-        processDREWorkbook(activeWorkbook);
-    }
-});
+const yearSelectElement = document.getElementById('year-select');
+if (yearSelectElement) {
+    yearSelectElement.addEventListener('change', (e) => {
+        if (activeWorkbook) {
+            processDREWorkbook(activeWorkbook);
+        }
+    });
+}
 
 // Ação de Impressão / PDF
 document.getElementById('print-btn').addEventListener('click', () => {
