@@ -735,7 +735,7 @@ function renderAnalysis(loja, period) {
     if (headersRow) {
         headersRow.innerHTML = "<th>Conta Gerencial</th>";
         sortedActivePeriods.forEach(p => {
-            headersRow.innerHTML += `<th class="text-right">${p}</th>`;
+            headersRow.innerHTML += `<th class="text-right">${p} (R$)</th><th class="text-right">%</th>`;
         });
     }
 
@@ -774,25 +774,46 @@ function renderAnalysis(loja, period) {
             sortedActivePeriods.forEach(p => {
                 const dataVal = storeData.values[p];
                 let formattedVal = "-";
+                let formattedPct = "-";
                 
                 if (dataVal) {
                     const val = row.getValue(dataVal);
+                    const denom = dataVal.receitaBruta > 0 ? dataVal.receitaBruta : 1;
+                    const pctVal = (val / denom) * 100;
+                    
                     if (row.format === "currency") {
                         formattedVal = formatCurrencyBRL(val);
                         if (val < 0) {
                             formattedVal = `<span class="negative-value">${formattedVal}</span>`;
                         }
+                        
+                        if (row.label === "Faturamento Bruto") {
+                            formattedPct = "100.0%";
+                        } else {
+                            formattedPct = `${pctVal.toFixed(1)}%`;
+                            if (pctVal < 0) {
+                                formattedPct = `<span class="negative-value">${formattedPct}</span>`;
+                            }
+                        }
                     } else {
+                        // Linha que já é percentual (Margem EBITDA)
                         formattedVal = `${val.toFixed(2)}%`;
                         if (val < 0) {
                             formattedVal = `<span class="negative-value">${formattedVal}</span>`;
                         }
+                        formattedPct = ""; // não se aplica percentual redundante
                     }
                 }
                 
                 tr.innerHTML += `<td class="text-right">${formattedVal}</td>`;
+                if (row.format === "currency") {
+                    tr.innerHTML += `<td class="text-right">${formattedPct}</td>`;
+                } else {
+                    tr.innerHTML += `<td class="text-right">-</td>`;
+                }
             });
             
+            tr.style.borderBottom = "1px solid var(--border-color)";
             monthlyBody.appendChild(tr);
         });
     }
