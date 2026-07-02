@@ -431,6 +431,7 @@ function parseDREColumn(rows, colIndex) {
     let data = {
         receitaBruta: 0,
         receitaLiquida: 0,
+        receitaServicos: 0, // Receita de Serviços (Taxa de entrega, merchandising)
         devolucoes: 0,
         cmvTotal: 0,
         cmvBebidas: 0,
@@ -578,8 +579,21 @@ function parseDREColumn(rows, colIndex) {
             case !startsWithEquals && (contaUpper === "EBITDA" || contaUpper === "RESULTADO OPERACIONAL" || contaUpper === "LUCRO OPERACIONAL" || contaUpper.includes("LUCRO OPERACIONAL (EBITDA)") || contaUpper.includes("= RESULTADO OPERACIONAL") || contaUpper.includes("= EBITDA")):
                 data.lucroOperacional = valorVal;
                 break;
+                
+            // 8. Receita de Serviços
+            case startsWithEquals && (cleanContaUpper.includes("RECEITA SERVIÇO") || cleanContaUpper.includes("RECEITA SERVICO") || cleanContaUpper.includes("TAXA DE ENTREGA") || cleanContaUpper.includes("MERCHANDISING")):
+            case !startsWithEquals && (contaUpper.includes("RECEITA SERVIÇO") || contaUpper.includes("RECEITA SERVICO") || contaUpper.includes("TAXA DE ENTREGA") || contaUpper.includes("MERCHANDISING")):
+                data.receitaServicos = valorVal;
+                break;
         }
     });
+    
+    // Acrescenta a Receita de Serviços aos totais de faturamento bruto, receita líquida e ebitda
+    if (data.receitaServicos !== 0) {
+        data.receitaBruta += data.receitaServicos;
+        data.receitaLiquida += data.receitaServicos;
+        data.lucroOperacional += data.receitaServicos;
+    }
     
     // Atualizar pessoalTotal com a soma das subcontas se não tiver sido extraído diretamente
     if (data.pessoalTotal === 0) {
@@ -691,10 +705,11 @@ function renderAnalysis(loja, period) {
     // 3. Montar Tabela Comparativa
     tableBody.innerHTML = "";
     
-    // Exibe estritamente as 7 contas gerenciais oficiais que constam na planilha de referência
+    // Exibe estritamente as contas gerenciais oficiais que constam na planilha de referência
     const contasExibir = [
         { nome: "Fat. Bruto", valorReal: data.receitaBruta, meta: null, isMain: true, isSub: false },
         { nome: "Rec. Líquida", valorReal: data.receitaLiquida, meta: null, isMain: true, isSub: false },
+        { nome: "Rec. Serviços", valorReal: data.receitaServicos, meta: null, isMain: true, isSub: false },
         { nome: "CMV", valorReal: -Math.abs(data.cmvTotal), meta: ref.meta_cmv, isMain: true, isSub: false },
         { nome: "Pessoal", valorReal: -Math.abs(data.pessoalTotal), meta: ref.meta_pessoal, isMain: true, isSub: false },
         { nome: "Ocupação", valorReal: -Math.abs(data.aluguel), meta: ref.meta_ocupacao, isMain: true, isSub: false },
@@ -864,6 +879,7 @@ function renderAnalysis(loja, period) {
     const rowsConfig = [
         { label: "Fat. Bruto", getValue: (d) => d.receitaBruta, format: "currency" },
         { label: "Rec. Líquida", getValue: (d) => d.receitaLiquida, format: "currency" },
+        { label: "Rec. Serviços", getValue: (d) => d.receitaServicos, format: "currency" },
         { label: "CMV", getValue: (d) => -Math.abs(d.cmvTotal), format: "currency" },
         { label: "Pessoal", getValue: (d) => -Math.abs(d.pessoalTotal), format: "currency" },
         { label: "Ocupação", getValue: (d) => -Math.abs(d.aluguel), format: "currency" },
@@ -953,6 +969,7 @@ function renderAnalysis(loja, period) {
     const rowsPctConfig = [
         { label: "Fat. Bruto", getValue: (d) => d.receitaBruta, format: "currency" },
         { label: "Rec. Líquida", getValue: (d) => d.receitaLiquida, format: "currency" },
+        { label: "Rec. Serviços", getValue: (d) => d.receitaServicos, format: "currency" },
         { label: "CMV", getValue: (d) => -Math.abs(d.cmvTotal), format: "percent_of_sales" },
         { label: "Pessoal", getValue: (d) => -Math.abs(d.pessoalTotal), format: "percent_of_sales" },
         { label: "Ocupação", getValue: (d) => -Math.abs(d.aluguel), format: "percent_of_sales" },
