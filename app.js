@@ -111,6 +111,7 @@ function handleFileSelect(file) {
     
     // Guardar o arquivo no botão
     analyzeBtn.fileData = file;
+    analyzeBtn.uploadedFileName = file.name; // Salva o nome do arquivo para pré-seleção
 }
 
 function clearFile() {
@@ -119,6 +120,7 @@ function clearFile() {
     fileInfoBar.style.display = 'none';
     analyzeBtn.disabled = true;
     analyzeBtn.fileData = null;
+    analyzeBtn.uploadedFileName = null;
     resultsSection.style.display = 'none';
     lojasProcessadas = {};
 }
@@ -190,12 +192,31 @@ function processDREWorkbook(workbook) {
             return;
         }
         
+        // Tentar pré-selecionar a loja baseando-se no nome do arquivo
+        const fileNameLower = (analyzeBtn.uploadedFileName || "").toLowerCase();
+        let matchedStore = listLojas[0];
+        
+        for (let i = 0; i < listLojas.length; i++) {
+            const storeName = listLojas[i].toLowerCase();
+            // Remove acentos e caracteres especiais para comparação
+            const cleanStoreName = storeName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const cleanFileName = fileNameLower.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            
+            if (cleanFileName.includes(cleanStoreName)) {
+                matchedStore = listLojas[i];
+                break;
+            }
+        }
+        
         // Atualizar seletor de lojas
         storeSelect.innerHTML = "";
         listLojas.forEach(loja => {
             const option = document.createElement('option');
             option.value = loja;
             option.textContent = loja;
+            if (loja === matchedStore) {
+                option.selected = true;
+            }
             storeSelect.appendChild(option);
         });
         
@@ -215,7 +236,7 @@ function processDREWorkbook(workbook) {
         selectorsContainer.style.display = 'flex';
         
         // Definir padrões de inicialização
-        currentLoja = listLojas[0];
+        currentLoja = matchedStore;
         
         // Selecionar "Maio" por padrão se disponível, senão o último mês
         let defaultPeriod = sortedPeriods[sortedPeriods.length - 1];
@@ -470,65 +491,81 @@ function renderAnalysis(loja, period) {
     // Converter Markdown básico para HTML para exibição
     diagnosticText.innerHTML = diagnostic.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     
-    // 3. Montar Tabela Comparativa
+    // Atualizar título do EBITDA para incluir o período
+    const kpiEbitdaLabel = kpiEbitdaCard.querySelector('.kpi-label');
+    if (kpiEbitdaLabel) {
+        kpiEbitdaLabel.textContent = `EBITDA / Lucro Operacional (${period})`;
+    }
+    
+    // 3. Montar Tabela Comparativa Detalhada
     tableBody.innerHTML = "";
     
-    // Contas que vamos comparar
+    // Contas e subcontas para comparação detalhada
     const contasComparar = [
-        {
-            nome: "Custo de Mercadoria Vendida (CMV)",
-            valorReal: -Math.abs(data.cmvTotal),
-            meta: ref.meta_cmv
-        },
-        {
-            nome: "Custo de Pessoal (Folha)",
-            valorReal: -Math.abs(data.pessoalTotal),
-            meta: ref.meta_pessoal
-        },
-        {
-            nome: "Ocupação (Aluguel)",
-            valorReal: -Math.abs(data.aluguel),
-            meta: ref.meta_ocupacao
-        },
-        {
-            nome: "Utilidades (Energia, Gás e Água)",
-            valorReal: -Math.abs(data.energia + data.gas + data.agua),
-            meta: ref.meta_utilidades
-        }
+        { nome: "Custo de Mercadoria Vendida (CMV)", valorReal: -Math.abs(data.cmvTotal), meta: ref.meta_cmv, isParent: true },
+        { nome: "&nbsp;&nbsp;&nbsp;&nbsp;↳ Bebidas", valorReal: -Math.abs(data.cmvBebidas), meta: null },
+        { nome: "&nbsp;&nbsp;&nbsp;&nbsp;↳ Massas, Farinhas e Cereais", valorReal: -Math.abs(data.cmvMassas), meta: null },
+        { nome: "&nbsp;&nbsp;&nbsp;&nbsp;↳ Laticínios e Mussarela", valorReal: -Math.abs(data.cmvLaticinios), meta: null },
+        { nome: "&nbsp;&nbsp;&nbsp;&nbsp;↳ Alimentos e Outros Insumos", valorReal: -Math.abs(data.cmvAlimentos), meta: null },
+        
+        { nome: "Custo de Pessoal", valorReal: -Math.abs(data.pessoalTotal), meta: ref.meta_pessoal, isParent: true },
+        { nome: "&nbsp;&nbsp;&nbsp;&nbsp;↳ Salários e Ordenados", valorReal: -Math.abs(data.salarios), meta: null },
+        { nome: "&nbsp;&nbsp;&nbsp;&nbsp;↳ Horas Extras", valorReal: -Math.abs(data.horasExtras), meta: -1.5 }, // Meta referencial de HE: 1.5%
+        { nome: "&nbsp;&nbsp;&nbsp;&nbsp;↳ Encargos Sociais", valorReal: -Math.abs(data.encargos), meta: null },
+        { nome: "&nbsp;&nbsp;&nbsp;&nbsp;↳ Benefícios (VR, VT, Seguro)", valorReal: -Math.abs(data.beneficios), meta: null },
+        { nome: "&nbsp;&nbsp;&nbsp;&nbsp;↳ Recisão + FGTS", valorReal: -Math.abs(data.rescisao), meta: null },
+        
+        { nome: "Custos de Ocupação e Utilidades", valorReal: -Math.abs(data.ocupacaoTotal), meta: -(Math.abs(ref.meta_ocupacao) + Math.abs(ref.meta_utilidades)), isParent: true },
+        { nome: "&nbsp;&nbsp;&nbsp;&nbsp;↳ Aluguel e Condomínio", valorReal: -Math.abs(data.aluguel), meta: ref.meta_ocupacao },
+        { nome: "&nbsp;&nbsp;&nbsp;&nbsp;↳ Energia Elétrica", valorReal: -Math.abs(data.energia), meta: null },
+        { nome: "&nbsp;&nbsp;&nbsp;&nbsp;↳ Gás Canalizado", valorReal: -Math.abs(data.gas), meta: null },
+        { nome: "&nbsp;&nbsp;&nbsp;&nbsp;↳ Água e Saneamento", valorReal: -Math.abs(data.agua), meta: null }
     ];
     
     contasComparar.forEach(conta => {
         const pctRealVal = Math.abs((conta.valorReal / recLiquidaDiv) * 100);
-        const metaVal = Math.abs(conta.meta);
-        const desvio = pctRealVal - metaVal; // Diferença em p.p. (positivo se o custo real exceder a meta)
         
-        // Impacto financeiro: Receita Líquida * (Desvio / 100)
-        // Se desvio for positivo (custou mais do que o ideal), gera impacto negativo
-        const impactoFinanceiro = data.receitaLiquida * (desvio / 100);
-        
-        // Formatar classe de status do desvio (valores positivos indicam estouro de custos)
+        let metaText = "-";
+        let desvioText = "-";
+        let impactoText = "-";
+        let statusBadge = "-";
         let desvioClass = "";
-        let statusBadge = "";
         
-        if (desvio > 1.5) {
-            desvioClass = "up-critical";
-            statusBadge = `<span class="status-badge danger">Crítico</span>`;
-        } else if (desvio > 0) {
-            desvioClass = "up-warning";
-            statusBadge = `<span class="status-badge warning">Atenção</span>`;
-        } else {
-            desvioClass = "down-healthy";
-            statusBadge = `<span class="status-badge success">Saudável</span>`;
+        // Se a conta tem meta definida, faz o cálculo comparativo completo
+        if (conta.meta !== null) {
+            const metaVal = Math.abs(conta.meta);
+            const desvio = pctRealVal - metaVal;
+            const impactoFinanceiro = data.receitaLiquida * (desvio / 100);
+            
+            metaText = `${metaVal.toFixed(2)}%`;
+            desvioText = `${desvio > 0 ? '+' : ''}${desvio.toFixed(2)}%`;
+            impactoText = `${desvio > 0 ? '-' : '+'}${formatCurrencyBRL(Math.abs(impactoFinanceiro))}`;
+            
+            if (desvio > 1.5) {
+                desvioClass = "up-critical";
+                statusBadge = `<span class="status-badge danger">Crítico</span>`;
+            } else if (desvio > 0) {
+                desvioClass = "up-warning";
+                statusBadge = `<span class="status-badge warning">Atenção</span>`;
+            } else {
+                desvioClass = "down-healthy";
+                statusBadge = `<span class="status-badge success">Saudável</span>`;
+            }
         }
         
         const tr = document.createElement('tr');
+        if (conta.isParent) {
+            tr.style.fontWeight = "bold";
+            tr.style.backgroundColor = "rgba(255, 255, 255, 0.03)";
+        }
+        
         tr.innerHTML = `
-            <td><strong>${conta.nome}</strong></td>
+            <td>${conta.nome}</td>
             <td class="text-right">${formatCurrencyBRL(Math.abs(conta.valorReal))}</td>
             <td class="text-right">${pctRealVal.toFixed(2)}%</td>
-            <td class="text-right">${metaVal.toFixed(2)}%</td>
-            <td class="text-right desvio-indicator ${desvioClass}">${desvio > 0 ? '+' : ''}${desvio.toFixed(2)}%</td>
-            <td class="text-right ${desvio > 0 ? 'up-critical' : 'down-healthy'}">${desvio > 0 ? '-' : '+'}${formatCurrencyBRL(Math.abs(impactoFinanceiro))}</td>
+            <td class="text-right">${metaText}</td>
+            <td class="text-right desvio-indicator ${desvioClass}">${desvioText}</td>
+            <td class="text-right ${desvioClass}">${impactoText}</td>
             <td class="text-center">${statusBadge}</td>
         `;
         tableBody.appendChild(tr);
