@@ -556,12 +556,6 @@ function renderAnalysis(loja, period) {
     // Converter Markdown básico para HTML para exibição
     diagnosticText.innerHTML = diagnostic.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     
-    // Atualizar título do EBITDA para incluir o período
-    const kpiEbitdaLabel = kpiEbitdaCard.querySelector('.kpi-label');
-    if (kpiEbitdaLabel) {
-        kpiEbitdaLabel.textContent = `EBITDA / Lucro Operacional (${period})`;
-    }
-    
     // 3. Montar Tabela Comparativa
     tableBody.innerHTML = "";
     
