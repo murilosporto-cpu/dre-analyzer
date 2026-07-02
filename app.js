@@ -243,7 +243,6 @@ function processDREWorkbook(workbook) {
         }
         
         // Tentar pré-selecionar o Ano baseando-se no nome do arquivo
-        const yearSelect = document.getElementById('year-select');
         if (yearSelect) {
             if (fileNameLower.includes("2024")) {
                 yearSelect.value = "2024";
