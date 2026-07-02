@@ -833,6 +833,71 @@ function renderAnalysis(loja, period) {
             monthlyBody.appendChild(tr);
         });
     }
+
+    // 6. Montar Comparativo Mensal (%)
+    const headersPctRow = document.getElementById('monthly-pct-table-headers');
+    if (headersPctRow) {
+        headersPctRow.innerHTML = "<th>Conta</th>";
+        sortedActivePeriods.forEach(p => {
+            const abbrev = monthAbbreviations[p] || p;
+            headersPctRow.innerHTML += `<th class="text-right">${abbrev}</th>`;
+        });
+    }
+
+    const rowsPctConfig = [
+        { label: "Fat. Bruto", getValue: (d) => d.receitaBruta, format: "currency" },
+        { label: "Rec. Líquida", getValue: (d) => d.receitaLiquida, format: "currency" },
+        { label: "CMV", getValue: (d) => -Math.abs(d.cmvTotal), format: "percent_of_sales" },
+        { label: "Pessoal", getValue: (d) => -Math.abs(d.pessoalTotal), format: "percent_of_sales" },
+        { label: "Ocupação", getValue: (d) => -Math.abs(d.aluguel), format: "percent_of_sales" },
+        { label: "Utilidades", getValue: (d) => -Math.abs(d.energia + d.gas + d.agua), format: "percent_of_sales" },
+        { label: "EBITDA", getValue: (d) => d.lucroOperacional, format: "percent_of_sales" }
+    ];
+
+    const monthlyPctBody = document.getElementById('monthly-pct-comparison-body');
+    if (monthlyPctBody) {
+        monthlyPctBody.innerHTML = "";
+        
+        rowsPctConfig.forEach(row => {
+            const tr = document.createElement('tr');
+            
+            if (row.label.includes("EBITDA")) {
+                tr.style.fontWeight = "bold";
+                tr.style.backgroundColor = "rgba(0, 100, 145, 0.05)";
+            }
+            
+            tr.innerHTML = `<td><strong>${row.label}</strong></td>`;
+            
+            sortedActivePeriods.forEach(p => {
+                const dataVal = storeData.values[p];
+                let formattedVal = "-";
+                
+                if (dataVal) {
+                    const val = row.getValue(dataVal);
+                    
+                    if (row.format === "currency") {
+                        formattedVal = formatCurrencyBRL(val);
+                        if (val < 0) {
+                            formattedVal = `<span class="negative-value">${formattedVal}</span>`;
+                        }
+                    } else {
+                        // Calcula % baseado no Faturamento Bruto (Vendas)
+                        const denom = dataVal.receitaBruta > 0 ? dataVal.receitaBruta : 1;
+                        const pctVal = (val / denom) * 100;
+                        formattedVal = `${pctVal.toFixed(1)}%`;
+                        if (pctVal < 0) {
+                            formattedVal = `<span class="negative-value">${formattedVal}</span>`;
+                        }
+                    }
+                }
+                
+                tr.innerHTML += `<td class="text-right">${formattedVal}</td>`;
+            });
+            
+            tr.style.borderBottom = "1px solid var(--border-color)";
+            monthlyPctBody.appendChild(tr);
+        });
+    }
 }
 
 // Helper para Adicionar Cards de Ação
