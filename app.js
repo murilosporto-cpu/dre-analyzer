@@ -301,6 +301,22 @@ function parseStoreDRE(rows) {
         values: {}
     };
     
+    const validMonths = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+    const monthDisplayNames = {
+        "janeiro": "Janeiro",
+        "fevereiro": "Fevereiro",
+        "marco": "Março",
+        "abril": "Abril",
+        "maio": "Maio",
+        "junho": "Junho",
+        "julho": "Julho",
+        "agosto": "Agosto",
+        "setembro": "Setembro",
+        "outubro": "Outubro",
+        "novembro": "Novembro",
+        "dezembro": "Dezembro"
+    };
+    
     // Encontrar a linha de cabeçalho e a coluna dos meses
     let monthRowIndex = -1;
     
@@ -308,8 +324,8 @@ function parseStoreDRE(rows) {
         const row = rows[r];
         if (!row) continue;
         for (let c = 0; c < row.length; c++) {
-            const cellVal = String(row[c]).trim();
-            if (["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"].includes(cellVal)) {
+            const cellVal = String(row[c]).trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            if (validMonths.includes(cellVal)) {
                 monthRowIndex = r;
                 break;
             }
@@ -327,10 +343,12 @@ function parseStoreDRE(rows) {
     const headerRow = rows[monthRowIndex];
     // Adicionar cada mês encontrado como um período independente
     for (let c = 0; c < headerRow.length; c++) {
-        const cellVal = String(headerRow[c]).trim();
-        if (["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"].includes(cellVal)) {
-            result.periods.push(cellVal);
-            result.values[cellVal] = parseDREColumn(rows, c);
+        const rawCell = String(headerRow[c]).trim();
+        const cleanCell = rawCell.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (validMonths.includes(cleanCell)) {
+            const displayName = monthDisplayNames[cleanCell];
+            result.periods.push(displayName);
+            result.values[displayName] = parseDREColumn(rows, c);
         }
     }
     
