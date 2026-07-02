@@ -498,14 +498,15 @@ function renderAnalysis(loja, period) {
     ];
     
     contasComparar.forEach(conta => {
-        const pctReal = (conta.valorReal / recLiquidaDiv) * 100;
-        const desvio = pctReal - conta.meta; // Diferença em p.p.
+        const pctRealVal = Math.abs((conta.valorReal / recLiquidaDiv) * 100);
+        const metaVal = Math.abs(conta.meta);
+        const desvio = pctRealVal - metaVal; // Diferença em p.p. (positivo se o custo real exceder a meta)
         
         // Impacto financeiro: Receita Líquida * (Desvio / 100)
         // Se desvio for positivo (custou mais do que o ideal), gera impacto negativo
         const impactoFinanceiro = data.receitaLiquida * (desvio / 100);
         
-        // Formatar classe de status do desvio
+        // Formatar classe de status do desvio (valores positivos indicam estouro de custos)
         let desvioClass = "";
         let statusBadge = "";
         
@@ -524,8 +525,8 @@ function renderAnalysis(loja, period) {
         tr.innerHTML = `
             <td><strong>${conta.nome}</strong></td>
             <td class="text-right">${formatCurrencyBRL(Math.abs(conta.valorReal))}</td>
-            <td class="text-right">${pctReal.toFixed(2)}%</td>
-            <td class="text-right">${Math.abs(conta.meta).toFixed(2)}%</td>
+            <td class="text-right">${pctRealVal.toFixed(2)}%</td>
+            <td class="text-right">${metaVal.toFixed(2)}%</td>
             <td class="text-right desvio-indicator ${desvioClass}">${desvio > 0 ? '+' : ''}${desvio.toFixed(2)}%</td>
             <td class="text-right ${desvio > 0 ? 'up-critical' : 'down-healthy'}">${desvio > 0 ? '-' : '+'}${formatCurrencyBRL(Math.abs(impactoFinanceiro))}</td>
             <td class="text-center">${statusBadge}</td>
