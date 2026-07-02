@@ -676,42 +676,16 @@ function renderAnalysis(loja, period) {
     // 3. Montar Tabela Comparativa
     tableBody.innerHTML = "";
     
-    // Se o arquivo não tiver linhasDRE (fallback para compatibilidade ou erro), usa a estrutura fixa
-    let contasExibir = [];
-    if (data.linhasDRE && data.linhasDRE.length > 0) {
-        data.linhasDRE.forEach(linha => {
-            let meta = null;
-            const nomeUpper = linha.nome.toUpperCase();
-            
-            // Mapeia metas apenas para as contas principais (=)
-            if (linha.isMain) {
-                if (nomeUpper.includes("CMV")) meta = ref.meta_cmv;
-                else if (nomeUpper.includes("PESSOAL") || nomeUpper.includes("FOLHA")) meta = ref.meta_pessoal;
-                else if (nomeUpper.includes("OCUPAÇÃO") || nomeUpper.includes("OCUPACAO")) meta = ref.meta_ocupacao;
-                else if (nomeUpper.includes("UTILIDADES") || nomeUpper.includes("ENERGIA")) meta = ref.meta_utilidades;
-                else if (nomeUpper.includes("EBITDA") || nomeUpper.includes("RESULTADO OPERACIONAL") || nomeUpper.includes("LUCRO OPERACIONAL")) meta = ref.meta_ebitda;
-            }
-            
-            contasExibir.push({
-                nome: linha.nome,
-                valorReal: linha.valor,
-                meta: meta,
-                isMain: linha.isMain,
-                isSub: linha.isSub
-            });
-        });
-    } else {
-        // Fallback para relatórios antigos sem prefixos = ou -
-        contasExibir = [
-            { nome: "Fat. Bruto", valorReal: data.receitaBruta, meta: null, isMain: true, isSub: false },
-            { nome: "Rec. Líquida", valorReal: data.receitaLiquida, meta: null, isMain: true, isSub: false },
-            { nome: "CMV", valorReal: -Math.abs(data.cmvTotal), meta: ref.meta_cmv, isMain: true, isSub: false },
-            { nome: "Pessoal", valorReal: -Math.abs(data.pessoalTotal), meta: ref.meta_pessoal, isMain: true, isSub: false },
-            { nome: "Ocupação", valorReal: -Math.abs(data.aluguel), meta: ref.meta_ocupacao, isMain: true, isSub: false },
-            { nome: "Utilidades", valorReal: -Math.abs(data.energia + data.gas + data.agua), meta: ref.meta_utilidades, isMain: true, isSub: false },
-            { nome: "EBITDA", valorReal: data.lucroOperacional, meta: ref.meta_ebitda, isMain: true, isSub: false }
-        ];
-    }
+    // Exibe estritamente as 7 contas gerenciais oficiais que constam na planilha de referência
+    const contasExibir = [
+        { nome: "Fat. Bruto", valorReal: data.receitaBruta, meta: null, isMain: true, isSub: false },
+        { nome: "Rec. Líquida", valorReal: data.receitaLiquida, meta: null, isMain: true, isSub: false },
+        { nome: "CMV", valorReal: -Math.abs(data.cmvTotal), meta: ref.meta_cmv, isMain: true, isSub: false },
+        { nome: "Pessoal", valorReal: -Math.abs(data.pessoalTotal), meta: ref.meta_pessoal, isMain: true, isSub: false },
+        { nome: "Ocupação", valorReal: -Math.abs(data.aluguel), meta: ref.meta_ocupacao, isMain: true, isSub: false },
+        { nome: "Utilidades", valorReal: -Math.abs(data.energia + data.gas + data.agua), meta: ref.meta_utilidades, isMain: true, isSub: false },
+        { nome: "EBITDA", valorReal: data.lucroOperacional, meta: ref.meta_ebitda, isMain: true, isSub: false }
+    ];
     
     contasExibir.forEach(conta => {
         // Ignora contas gerenciais que estão zeradas no relatório do período selecionado
