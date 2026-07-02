@@ -49,6 +49,7 @@ const REFERENCIA_CLUSTERS = {
 let lojasProcessadas = {};
 let currentLoja = "";
 let currentPeriod = "";
+let activeWorkbook = null;
 
 // Elementos DOM
 const dropZone = document.getElementById('dre-dropzone');
@@ -121,6 +122,7 @@ function clearFile() {
     analyzeBtn.disabled = true;
     analyzeBtn.fileData = null;
     analyzeBtn.uploadedFileName = null;
+    activeWorkbook = null;
     resultsSection.style.display = 'none';
     lojasProcessadas = {};
 }
@@ -136,6 +138,7 @@ analyzeBtn.addEventListener('click', () => {
             try {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
+                activeWorkbook = workbook;
                 
                 processDREWorkbook(workbook);
             } catch (err) {
@@ -158,6 +161,13 @@ function processDREWorkbook(workbook) {
         lojasProcessadas = {};
         const sheetNames = workbook.SheetNames;
         
+        const yearSelect = document.getElementById('year-select');
+        const selectedYear = yearSelect ? parseInt(yearSelect.value) : new Date().getFullYear();
+        const currentDate = new Date();
+        const curYear = currentDate.getFullYear();
+        const curMonthIdx = currentDate.getMonth(); // 0 = Janeiro, 6 = Julho
+        
+        const monthOrder = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         let allPeriods = new Set();
         
         sheetNames.forEach(sheetName => {
@@ -174,6 +184,13 @@ function processDREWorkbook(workbook) {
             // Verificar se a loja tem faturamento em pelo menos um período
             let temFaturamento = false;
             lojaData.periods.forEach(p => {
+                const monthIdx = monthOrder.indexOf(p);
+                
+                // Se for o ano atual (2026), ignorar meses futuros (Julho em diante, pois Julho ainda está em curso)
+                if (selectedYear === curYear && monthIdx !== -1 && monthIdx >= curMonthIdx) {
+                    return; // Pula mês futuro
+                }
+                
                 if (lojaData.values[p].receitaBruta > 0) {
                     temFaturamento = true;
                     allPeriods.add(p);
@@ -676,7 +693,9 @@ document.getElementById('period-select').addEventListener('change', (e) => {
 
 // Listener para Mudança de Ano no Select
 document.getElementById('year-select').addEventListener('change', (e) => {
-    renderAnalysis(currentLoja, currentPeriod);
+    if (activeWorkbook) {
+        processDREWorkbook(activeWorkbook);
+    }
 });
 
 // Ação de Impressão / PDF
