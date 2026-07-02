@@ -714,6 +714,9 @@ function renderAnalysis(loja, period) {
     }
     
     contasExibir.forEach(conta => {
+        // Ignora contas gerenciais que estão zeradas no relatório do período selecionado
+        if (conta.valorReal === 0) return;
+        
         const pctRealVal = Math.abs((conta.valorReal / recLiquidaDiv) * 100);
         
         let metaValStr = "-";
