@@ -667,43 +667,90 @@ function renderAnalysis(loja, period) {
     
     // Contas principais para comparação
     const contasComparar = [
-        { nome: "Custo de Mercadoria Vendida (CMV)", valorReal: -Math.abs(data.cmvTotal), meta: ref.meta_cmv },
-        { nome: "Custo de Pessoal (Folha)", valorReal: -Math.abs(data.pessoalTotal), meta: ref.meta_pessoal },
-        { nome: "Ocupação (Aluguel)", valorReal: -Math.abs(data.aluguel), meta: ref.meta_ocupacao },
-        { nome: "Utilidades (Energia, Gás e Água)", valorReal: -Math.abs(data.energia + data.gas + data.agua), meta: ref.meta_utilidades }
+        { nome: "Fat. Bruto", valorReal: data.receitaBruta, meta: null },
+        { nome: "Rec. Líquida", valorReal: data.receitaLiquida, meta: null },
+        { nome: "CMV", valorReal: -Math.abs(data.cmvTotal), meta: ref.meta_cmv },
+        { nome: "Pessoal", valorReal: -Math.abs(data.pessoalTotal), meta: ref.meta_pessoal },
+        { nome: "Ocupação", valorReal: -Math.abs(data.aluguel), meta: ref.meta_ocupacao },
+        { nome: "Utilidades", valorReal: -Math.abs(data.energia + data.gas + data.agua), meta: ref.meta_utilidades },
+        { nome: "EBITDA", valorReal: data.lucroOperacional, meta: ref.meta_ebitda }
     ];
     
     contasComparar.forEach(conta => {
         const pctRealVal = Math.abs((conta.valorReal / recLiquidaDiv) * 100);
-        const metaVal = Math.abs(conta.meta);
-        const desvio = pctRealVal - metaVal; // Diferença em p.p. (positivo se o custo real exceder a meta)
         
-        // Impacto financeiro: Receita Líquida * (Desvio / 100)
-        const impactoFinanceiro = data.receitaLiquida * (desvio / 100);
-        
-        // Formatar classe de status do desvio (valores positivos indicam estouro de custos)
+        let metaValStr = "-";
+        let desvioStr = "-";
         let desvioClass = "";
-        let statusBadge = "";
+        let impactoStr = "-";
+        let statusBadge = "-";
         
-        if (desvio > 1.5) {
-            desvioClass = "up-critical";
-            statusBadge = `<span class="status-badge danger">Crítico</span>`;
-        } else if (desvio > 0) {
-            desvioClass = "up-warning";
-            statusBadge = `<span class="status-badge warning">Atenção</span>`;
-        } else {
-            desvioClass = "down-healthy";
-            statusBadge = `<span class="status-badge success">Saudável</span>`;
+        if (conta.meta !== null) {
+            const metaVal = Math.abs(conta.meta);
+            let desvio = 0;
+            let impactoFinanceiro = 0;
+            
+            if (conta.nome === "EBITDA") {
+                const realEbitdaPct = (conta.valorReal / recLiquidaDiv) * 100;
+                desvio = realEbitdaPct - conta.meta;
+                impactoFinanceiro = data.receitaLiquida * (desvio / 100);
+                
+                metaValStr = `${conta.meta.toFixed(2)}%`;
+                desvioStr = `${desvio > 0 ? '+' : ''}${desvio.toFixed(2)}%`;
+                
+                if (desvio < -1.5) {
+                    desvioClass = "up-critical";
+                    statusBadge = `<span class="status-badge danger">Crítico</span>`;
+                } else if (desvio < 0) {
+                    desvioClass = "up-warning";
+                    statusBadge = `<span class="status-badge warning">Atenção</span>`;
+                } else {
+                    desvioClass = "down-healthy";
+                    statusBadge = `<span class="status-badge success">Saudável</span>`;
+                }
+                
+                impactoStr = `${impactoFinanceiro > 0 ? '+' : ''}${formatCurrencyBRL(impactoFinanceiro)}`;
+            } else {
+                desvio = pctRealVal - metaVal;
+                impactoFinanceiro = data.receitaLiquida * (desvio / 100);
+                
+                metaValStr = `${metaVal.toFixed(2)}%`;
+                desvioStr = `${desvio > 0 ? '+' : ''}${desvio.toFixed(2)}%`;
+                
+                if (desvio > 1.5) {
+                    desvioClass = "up-critical";
+                    statusBadge = `<span class="status-badge danger">Crítico</span>`;
+                } else if (desvio > 0) {
+                    desvioClass = "up-warning";
+                    statusBadge = `<span class="status-badge warning">Atenção</span>`;
+                } else {
+                    desvioClass = "down-healthy";
+                    statusBadge = `<span class="status-badge success">Saudável</span>`;
+                }
+                
+                impactoStr = `${desvio > 0 ? '-' : '+'}${formatCurrencyBRL(Math.abs(impactoFinanceiro))}`;
+            }
+        }
+        
+        let displayPctReal = `${pctRealVal.toFixed(2)}%`;
+        if (conta.nome === "EBITDA") {
+            const realEbitdaPct = (conta.valorReal / recLiquidaDiv) * 100;
+            displayPctReal = `${realEbitdaPct.toFixed(2)}%`;
         }
         
         const tr = document.createElement('tr');
+        if (conta.nome === "EBITDA") {
+            tr.style.fontWeight = "bold";
+            tr.style.backgroundColor = "rgba(0, 100, 145, 0.05)";
+        }
+        
         tr.innerHTML = `
             <td><strong>${conta.nome}</strong></td>
             <td class="text-right">${formatCurrencyBRL(Math.abs(conta.valorReal))}</td>
-            <td class="text-right">${pctRealVal.toFixed(2)}%</td>
-            <td class="text-right">${metaVal.toFixed(2)}%</td>
-            <td class="text-right desvio-indicator ${desvioClass}">${desvio > 0 ? '+' : ''}${desvio.toFixed(2)}%</td>
-            <td class="text-right ${desvio > 0 ? 'up-critical' : 'down-healthy'}">${desvio > 0 ? '-' : '+'}${formatCurrencyBRL(Math.abs(impactoFinanceiro))}</td>
+            <td class="text-right">${displayPctReal}</td>
+            <td class="text-right">${metaValStr}</td>
+            <td class="text-right desvio-indicator ${desvioClass}">${desvioStr}</td>
+            <td class="text-right ${desvioClass}">${impactoStr}</td>
             <td class="text-center">${statusBadge}</td>
         `;
         tableBody.appendChild(tr);
