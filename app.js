@@ -100,8 +100,12 @@ removeFileBtn.addEventListener('remove', clearFile);
 removeFileBtn.addEventListener('click', clearFile);
 
 function handleFileSelect(file) {
-    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-        alert('Por favor, selecione apenas arquivos do Excel (.xlsx ou .xls).');
+    const fileNameLower = file.name.toLowerCase();
+    const validExtensions = ['.xlsx', '.xls', '.xlsm', '.xlsb', '.csv', '.ods'];
+    const isValid = validExtensions.some(ext => fileNameLower.endsWith(ext));
+    
+    if (!isValid) {
+        alert('Por favor, selecione um arquivo de planilha válido (.xlsx, .xls, .xlsm, .xlsb ou .csv).');
         return;
     }
     
