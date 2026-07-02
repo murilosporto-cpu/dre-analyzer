@@ -538,19 +538,6 @@ function renderAnalysis(loja, period) {
     const pctEbitdaReal = (data.lucroOperacional / recLiquidaDiv) * 100;
     kpiEbitda.textContent = formatCurrencyBRL(data.lucroOperacional) + ` (${pctEbitdaReal.toFixed(2)}%)`;
     
-    // Status do EBITDA
-    kpiEbitdaStatus.className = "kpi-status-badge";
-    if (pctEbitdaReal >= ref.meta_ebitda) {
-        kpiEbitdaStatus.textContent = "Saudável";
-        kpiEbitdaStatus.classList.add('healthy');
-    } else if (pctEbitdaReal > 0) {
-        kpiEbitdaStatus.textContent = "Atenção";
-        kpiEbitdaStatus.classList.add('warning');
-    } else {
-        kpiEbitdaStatus.textContent = "Crítico";
-        kpiEbitdaStatus.classList.add('critical');
-    }
-    
     // 2. Preencher Diagnóstico
     let diagnostic = "";
     if (pctEbitdaReal >= ref.meta_ebitda) {
