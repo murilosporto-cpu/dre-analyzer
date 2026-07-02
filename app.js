@@ -449,7 +449,8 @@ function parseDREColumn(rows, colIndex) {
         gas: 0,
         agua: 0,
         despComerciais: 0,
-        lucroOperacional: 0
+        lucroOperacional: 0,
+        linhasDRE: [] // Armazena a lista de todas as contas gerenciais encontradas no arquivo (= e -)
     };
     
     let sumPessoal = 0;
@@ -460,6 +461,16 @@ function parseDREColumn(rows, colIndex) {
         const contaUpper = rawConta.toUpperCase();
         const valorVal = parseCurrency(row[colIndex]);
         const absVal = Math.abs(valorVal);
+        
+        // Se for uma conta gerencial total (=) ou subcategoria (-), adiciona na lista
+        if (rawConta.startsWith("=") || rawConta.startsWith("-")) {
+            data.linhasDRE.push({
+                nome: rawConta,
+                valor: valorVal,
+                isMain: rawConta.startsWith("="),
+                isSub: rawConta.startsWith("-")
+            });
+        }
         
         switch (true) {
             // 1. Receitas
@@ -665,18 +676,44 @@ function renderAnalysis(loja, period) {
     // 3. Montar Tabela Comparativa
     tableBody.innerHTML = "";
     
-    // Contas principais para comparação
-    const contasComparar = [
-        { nome: "Fat. Bruto", valorReal: data.receitaBruta, meta: null },
-        { nome: "Rec. Líquida", valorReal: data.receitaLiquida, meta: null },
-        { nome: "CMV", valorReal: -Math.abs(data.cmvTotal), meta: ref.meta_cmv },
-        { nome: "Pessoal", valorReal: -Math.abs(data.pessoalTotal), meta: ref.meta_pessoal },
-        { nome: "Ocupação", valorReal: -Math.abs(data.aluguel), meta: ref.meta_ocupacao },
-        { nome: "Utilidades", valorReal: -Math.abs(data.energia + data.gas + data.agua), meta: ref.meta_utilidades },
-        { nome: "EBITDA", valorReal: data.lucroOperacional, meta: ref.meta_ebitda }
-    ];
+    // Se o arquivo não tiver linhasDRE (fallback para compatibilidade ou erro), usa a estrutura fixa
+    let contasExibir = [];
+    if (data.linhasDRE && data.linhasDRE.length > 0) {
+        data.linhasDRE.forEach(linha => {
+            let meta = null;
+            const nomeUpper = linha.nome.toUpperCase();
+            
+            // Mapeia metas apenas para as contas principais (=)
+            if (linha.isMain) {
+                if (nomeUpper.includes("CMV")) meta = ref.meta_cmv;
+                else if (nomeUpper.includes("PESSOAL") || nomeUpper.includes("FOLHA")) meta = ref.meta_pessoal;
+                else if (nomeUpper.includes("OCUPAÇÃO") || nomeUpper.includes("OCUPACAO")) meta = ref.meta_ocupacao;
+                else if (nomeUpper.includes("UTILIDADES") || nomeUpper.includes("ENERGIA")) meta = ref.meta_utilidades;
+                else if (nomeUpper.includes("EBITDA") || nomeUpper.includes("RESULTADO OPERACIONAL") || nomeUpper.includes("LUCRO OPERACIONAL")) meta = ref.meta_ebitda;
+            }
+            
+            contasExibir.push({
+                nome: linha.nome,
+                valorReal: linha.valor,
+                meta: meta,
+                isMain: linha.isMain,
+                isSub: linha.isSub
+            });
+        });
+    } else {
+        // Fallback para relatórios antigos sem prefixos = ou -
+        contasExibir = [
+            { nome: "Fat. Bruto", valorReal: data.receitaBruta, meta: null, isMain: true, isSub: false },
+            { nome: "Rec. Líquida", valorReal: data.receitaLiquida, meta: null, isMain: true, isSub: false },
+            { nome: "CMV", valorReal: -Math.abs(data.cmvTotal), meta: ref.meta_cmv, isMain: true, isSub: false },
+            { nome: "Pessoal", valorReal: -Math.abs(data.pessoalTotal), meta: ref.meta_pessoal, isMain: true, isSub: false },
+            { nome: "Ocupação", valorReal: -Math.abs(data.aluguel), meta: ref.meta_ocupacao, isMain: true, isSub: false },
+            { nome: "Utilidades", valorReal: -Math.abs(data.energia + data.gas + data.agua), meta: ref.meta_utilidades, isMain: true, isSub: false },
+            { nome: "EBITDA", valorReal: data.lucroOperacional, meta: ref.meta_ebitda, isMain: true, isSub: false }
+        ];
+    }
     
-    contasComparar.forEach(conta => {
+    contasExibir.forEach(conta => {
         const pctRealVal = Math.abs((conta.valorReal / recLiquidaDiv) * 100);
         
         let metaValStr = "-";
@@ -690,7 +727,7 @@ function renderAnalysis(loja, period) {
             let desvio = 0;
             let impactoFinanceiro = 0;
             
-            if (conta.nome === "EBITDA") {
+            if (conta.nome.toUpperCase().includes("EBITDA") || conta.nome.toUpperCase().includes("RESULTADO OPERACIONAL")) {
                 const realEbitdaPct = (conta.valorReal / recLiquidaDiv) * 100;
                 desvio = realEbitdaPct - conta.meta;
                 impactoFinanceiro = data.receitaLiquida * (desvio / 100);
@@ -733,19 +770,25 @@ function renderAnalysis(loja, period) {
         }
         
         let displayPctReal = `${pctRealVal.toFixed(2)}%`;
-        if (conta.nome === "EBITDA") {
+        if (conta.nome.toUpperCase().includes("EBITDA") || conta.nome.toUpperCase().includes("RESULTADO OPERACIONAL")) {
             const realEbitdaPct = (conta.valorReal / recLiquidaDiv) * 100;
             displayPctReal = `${realEbitdaPct.toFixed(2)}%`;
         }
         
         const tr = document.createElement('tr');
-        if (conta.nome === "EBITDA") {
+        if (conta.isMain) {
             tr.style.fontWeight = "bold";
-            tr.style.backgroundColor = "rgba(0, 100, 145, 0.05)";
+            tr.style.backgroundColor = "rgba(0, 100, 145, 0.03)";
+            if (conta.nome.toUpperCase().includes("EBITDA") || conta.nome.toUpperCase().includes("RESULTADO OPERACIONAL")) {
+                tr.style.backgroundColor = "rgba(0, 100, 145, 0.08)";
+            }
+        } else if (conta.isSub) {
+            tr.style.fontSize = "0.85rem";
+            tr.style.color = "var(--text-muted)";
         }
         
         tr.innerHTML = `
-            <td><strong>${conta.nome}</strong></td>
+            <td style="${conta.isSub ? 'padding-left: 2rem;' : ''}"><strong>${conta.nome}</strong></td>
             <td class="text-right">${formatCurrencyBRL(Math.abs(conta.valorReal))}</td>
             <td class="text-right">${displayPctReal}</td>
             <td class="text-right">${metaValStr}</td>
