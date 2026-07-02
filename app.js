@@ -731,24 +731,40 @@ function renderAnalysis(loja, period) {
     // 5. Montar Comparativo Mensal (Real)
     const sortedActivePeriods = activePeriods;
 
+    const monthAbbreviations = {
+        "Janeiro": "Jan",
+        "Fevereiro": "Fev",
+        "Março": "Mar",
+        "Abril": "Abr",
+        "Maio": "Mai",
+        "Junho": "Jun",
+        "Julho": "Jul",
+        "Agosto": "Ago",
+        "Setembro": "Set",
+        "Outubro": "Out",
+        "Novembro": "Nov",
+        "Dezembro": "Dez"
+    };
+
     const headersRow = document.getElementById('monthly-table-headers');
     if (headersRow) {
-        headersRow.innerHTML = "<th>Conta Gerencial</th>";
+        headersRow.innerHTML = "<th>Conta</th>";
         sortedActivePeriods.forEach(p => {
-            headersRow.innerHTML += `<th class="text-right">${p} (R$)</th><th class="text-right">%</th>`;
+            const abbrev = monthAbbreviations[p] || p;
+            headersRow.innerHTML += `<th class="text-right">${abbrev} (R$)</th><th class="text-right">%</th>`;
         });
     }
 
     const rowsConfig = [
-        { label: "Faturamento Bruto", getValue: (d) => d.receitaBruta, format: "currency" },
-        { label: "Receita Líquida", getValue: (d) => d.receitaLiquida, format: "currency" },
-        { label: "Custo de Mercadoria Vendida (CMV)", getValue: (d) => -Math.abs(d.cmvTotal), format: "currency" },
-        { label: "Custo de Pessoal (Folha)", getValue: (d) => -Math.abs(d.pessoalTotal), format: "currency" },
-        { label: "Ocupação (Aluguel)", getValue: (d) => -Math.abs(d.aluguel), format: "currency" },
-        { label: "Utilidades (Energia, Gás, Água)", getValue: (d) => -Math.abs(d.energia + d.gas + d.agua), format: "currency" },
-        { label: "EBITDA / Lucro Operacional", getValue: (d) => d.lucroOperacional, format: "currency" },
+        { label: "Fat. Bruto", getValue: (d) => d.receitaBruta, format: "currency" },
+        { label: "Rec. Líquida", getValue: (d) => d.receitaLiquida, format: "currency" },
+        { label: "CMV", getValue: (d) => -Math.abs(d.cmvTotal), format: "currency" },
+        { label: "Pessoal", getValue: (d) => -Math.abs(d.pessoalTotal), format: "currency" },
+        { label: "Ocupação", getValue: (d) => -Math.abs(d.aluguel), format: "currency" },
+        { label: "Utilidades", getValue: (d) => -Math.abs(d.energia + d.gas + d.agua), format: "currency" },
+        { label: "EBITDA", getValue: (d) => d.lucroOperacional, format: "currency" },
         { 
-            label: "Margem EBITDA (%)", 
+            label: "Margem EBITDA", 
             getValue: (d) => {
                 const div = d.receitaLiquida > 0 ? d.receitaLiquida : 1;
                 return (d.lucroOperacional / div) * 100;
