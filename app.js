@@ -9,7 +9,8 @@ const REFERENCIA_CLUSTERS = {
         meta_pessoal: -23.69,
         meta_ocupacao: -5.0,
         meta_utilidades: -8.1,
-        meta_ebitda: 7.05
+        meta_ebitda: 7.05,
+        meta_servicos: 10.23
     },
     "ENTRE_150K_200K": {
         nome: "De R$ 150K a R$ 200K",
@@ -17,7 +18,8 @@ const REFERENCIA_CLUSTERS = {
         meta_pessoal: -21.84,
         meta_ocupacao: -5.0,
         meta_utilidades: -6.58,
-        meta_ebitda: 10.17
+        meta_ebitda: 10.17,
+        meta_servicos: 10.23
     },
     "ENTRE_200K_250K": {
         nome: "De R$ 200K a R$ 250K",
@@ -25,7 +27,8 @@ const REFERENCIA_CLUSTERS = {
         meta_pessoal: -21.52,
         meta_ocupacao: -5.0,
         meta_utilidades: -5.66,
-        meta_ebitda: 11.26
+        meta_ebitda: 11.26,
+        meta_servicos: 10.23
     },
     "ENTRE_250K_300K": {
         nome: "De R$ 250K a R$ 300K",
@@ -33,7 +36,8 @@ const REFERENCIA_CLUSTERS = {
         meta_pessoal: -20.65,
         meta_ocupacao: -5.0,
         meta_utilidades: -5.05,
-        meta_ebitda: 15.66
+        meta_ebitda: 15.66,
+        meta_servicos: 10.23
     },
     "ACIMA_300K": {
         nome: "Acima de R$ 300K",
@@ -41,7 +45,8 @@ const REFERENCIA_CLUSTERS = {
         meta_pessoal: -20.03,
         meta_ocupacao: -5.0,
         meta_utilidades: -4.61,
-        meta_ebitda: 15.68
+        meta_ebitda: 15.68,
+        meta_servicos: 10.23
     }
 };
 
@@ -650,8 +655,8 @@ function renderAnalysis(loja, period) {
     
     const ref = getClusterInfo(data.receitaBruta);
     
-    // Evitar divisões por zero se a receita líquida for zero
-    const recLiquidaDiv = data.receitaLiquida > 0 ? data.receitaLiquida : 1;
+    // Evitar divisões por zero se o faturamento bruto for zero (Benchmarks são baseados no faturamento bruto)
+    const recLiquidaDiv = data.receitaBruta > 0 ? data.receitaBruta : 1;
     
     // 1. Preencher KPIs principais
     kpiFaturamento.textContent = formatCurrencyBRL(data.receitaBruta);
@@ -708,7 +713,7 @@ function renderAnalysis(loja, period) {
     const contasExibir = [
         { nome: "Fat. Bruto", valorReal: data.receitaBruta, meta: null, isMain: true, isSub: false },
         { nome: "Rec. Líquida", valorReal: data.receitaLiquida, meta: null, isMain: true, isSub: false },
-        { nome: "Rec. Taxa entrega", valorReal: data.receitaServicos, meta: null, isMain: true, isSub: false },
+        { nome: "Rec. Taxa entrega", valorReal: data.receitaServicos, meta: ref.meta_servicos, isMain: true, isSub: false },
         { nome: "CMV", valorReal: -Math.abs(data.cmvTotal), meta: ref.meta_cmv, isMain: true, isSub: false },
         { nome: "Pessoal", valorReal: -Math.abs(data.pessoalTotal), meta: ref.meta_pessoal, isMain: true, isSub: false },
         { nome: "Ocupação", valorReal: -Math.abs(data.aluguel), meta: ref.meta_ocupacao, isMain: true, isSub: false },
@@ -730,7 +735,9 @@ function renderAnalysis(loja, period) {
             let desvio = 0;
             let impactoFinanceiro = 0;
             
-            if (conta.nome.toUpperCase().includes("EBITDA") || conta.nome.toUpperCase().includes("RESULTADO OPERACIONAL")) {
+            const isRevenueLike = conta.nome.toUpperCase().includes("EBITDA") || conta.nome.toUpperCase().includes("RESULTADO OPERACIONAL") || conta.nome === "Rec. Taxa entrega";
+            
+            if (isRevenueLike) {
                 const realEbitdaPct = (conta.valorReal / recLiquidaDiv) * 100;
                 desvio = realEbitdaPct - conta.meta;
                 impactoFinanceiro = data.receitaLiquida * (desvio / 100);
