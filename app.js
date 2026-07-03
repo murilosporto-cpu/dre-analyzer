@@ -580,9 +580,10 @@ function parseDREColumn(rows, colIndex) {
                 data.lucroOperacional = valorVal;
                 break;
                 
-            // 8. Receita de Serviços (Suporta taxas de entrega, merchandising e variações com/sem igual)
-            case startsWithEquals && (cleanContaUpper.includes("RECEITA SERVIÇO") || cleanContaUpper.includes("RECEITA SERVICO") || cleanContaUpper.includes("TAXA DE ENTREGA") || cleanContaUpper.includes("MERCHANDISING") || cleanContaUpper.includes("RECEITA SERVIÇOS") || cleanContaUpper.includes("RECEITA SERVICOS")):
-            case !startsWithEquals && (contaUpper.includes("RECEITA SERVIÇO") || contaUpper.includes("RECEITA SERVICO") || contaUpper.includes("TAXA DE ENTREGA") || contaUpper.includes("MERCHANDISING") || contaUpper.includes("RECEITA SERVIÇOS") || contaUpper.includes("RECEITA SERVICOS")):
+            // 8. Receita de Serviços (Totalmente imune a acentuações ou bugs de codificação como ç, c, servicos, servios)
+            case (contaUpper.includes("RECEITA") && contaUpper.includes("SERVI")) || 
+                 (contaUpper.includes("TAXA") && contaUpper.includes("ENTREG")) || 
+                 contaUpper.includes("MERCHANDIS"):
                 data.receitaServicos = valorVal;
                 break;
         }
