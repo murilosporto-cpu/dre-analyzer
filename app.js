@@ -708,7 +708,7 @@ function renderAnalysis(loja, period) {
     const contasExibir = [
         { nome: "Fat. Bruto", valorReal: data.receitaBruta, meta: null, isMain: true, isSub: false },
         { nome: "Rec. Líquida", valorReal: data.receitaLiquida, meta: null, isMain: true, isSub: false },
-        { nome: "Rec. Serviços", valorReal: data.receitaServicos, meta: null, isMain: true, isSub: false },
+        { nome: "Rec. Taxa entrega", valorReal: data.receitaServicos, meta: null, isMain: true, isSub: false },
         { nome: "CMV", valorReal: -Math.abs(data.cmvTotal), meta: ref.meta_cmv, isMain: true, isSub: false },
         { nome: "Pessoal", valorReal: -Math.abs(data.pessoalTotal), meta: ref.meta_pessoal, isMain: true, isSub: false },
         { nome: "Ocupação", valorReal: -Math.abs(data.aluguel), meta: ref.meta_ocupacao, isMain: true, isSub: false },
@@ -875,7 +875,7 @@ function renderAnalysis(loja, period) {
     const rowsConfig = [
         { label: "Fat. Bruto", getValue: (d) => d.receitaBruta, format: "currency" },
         { label: "Rec. Líquida", getValue: (d) => d.receitaLiquida, format: "currency" },
-        { label: "Rec. Serviços", getValue: (d) => d.receitaServicos, format: "currency" },
+        { label: "Rec. Taxa entrega", getValue: (d) => d.receitaServicos, format: "currency" },
         { label: "CMV", getValue: (d) => -Math.abs(d.cmvTotal), format: "currency" },
         { label: "Pessoal", getValue: (d) => -Math.abs(d.pessoalTotal), format: "currency" },
         { label: "Ocupação", getValue: (d) => -Math.abs(d.aluguel), format: "currency" },
@@ -965,7 +965,7 @@ function renderAnalysis(loja, period) {
     const rowsPctConfig = [
         { label: "Fat. Bruto", getValue: (d) => d.receitaBruta, format: "currency" },
         { label: "Rec. Líquida", getValue: (d) => d.receitaLiquida, format: "currency" },
-        { label: "Rec. Serviços", getValue: (d) => d.receitaServicos, format: "currency" },
+        { label: "Rec. Taxa entrega", getValue: (d) => d.receitaServicos, format: "currency" },
         { label: "CMV", getValue: (d) => -Math.abs(d.cmvTotal), format: "percent_of_sales" },
         { label: "Pessoal", getValue: (d) => -Math.abs(d.pessoalTotal), format: "percent_of_sales" },
         { label: "Ocupação", getValue: (d) => -Math.abs(d.aluguel), format: "percent_of_sales" },
