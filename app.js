@@ -1090,38 +1090,49 @@ document.getElementById('export-md-btn').addEventListener('click', () => {
     if (!data) return;
     
     const ref = getClusterInfo(data.receitaBruta);
-    const recLiquidaDiv = data.receitaLiquida > 0 ? data.receitaLiquida : 1;
-    const pctEbitdaReal = (data.lucroOperacional / recLiquidaDiv) * 100;
+    const divisor = data.receitaBruta > 0 ? data.receitaBruta : 1;
     
-    const pctRealCMV = (Math.abs(data.cmvTotal) / recLiquidaDiv) * 100;
-    const pctRealPessoal = (Math.abs(data.pessoalTotal) / recLiquidaDiv) * 100;
-    const pctRealHorasExtras = (Math.abs(data.horasExtras) / recLiquidaDiv) * 100;
-    const pctRealOcupacao = (Math.abs(data.aluguel) / recLiquidaDiv) * 100;
-    const pctRealUtilidades = (Math.abs(data.energia + data.gas + data.agua) / recLiquidaDiv) * 100;
+    const pctRealServicos = (data.receitaServicos / divisor) * 100;
+    const desvioServicos = pctRealServicos - ref.meta_servicos;
+    const impactoServicos = data.receitaLiquida * (desvioServicos / 100);
+    
+    const pctRealCMV = (Math.abs(data.cmvTotal) / divisor) * 100;
+    const pctRealPessoal = (Math.abs(data.pessoalTotal) / divisor) * 100;
+    const pctRealHorasExtras = (Math.abs(data.horasExtras) / divisor) * 100;
+    const pctRealOcupacao = (Math.abs(data.aluguel) / divisor) * 100;
+    const pctRealUtilidades = (Math.abs(data.energia + data.gas + data.agua) / divisor) * 100;
+    const pctEbitdaReal = (data.lucroOperacional / divisor) * 100;
+    const desvioEbitda = pctEbitdaReal - ref.meta_ebitda;
     
     const desvioCMV = pctRealCMV - Math.abs(ref.meta_cmv);
     const desvioPessoal = pctRealPessoal - Math.abs(ref.meta_pessoal);
+    const desvioOcupacao = pctRealOcupacao - Math.abs(ref.meta_ocupacao);
+    const desvioUtilidades = pctRealUtilidades - Math.abs(ref.meta_utilidades);
     
     const markdown = `# 📊 RELATÓRIO DE ANÁLISE GERENCIAL E OPORTUNIDADES
 **Loja Analisada:** ${currentLoja}
 **Mês de Referência:** ${currentPeriod}
+**Cluster de Enquadramento:** ${ref.nome}
 
 ### 1. Diagnóstico Geral (Resumo Executivo)
-A unidade **${currentLoja}** fechou o mês com faturamento bruto de **${formatCurrencyBRL(data.receitaBruta)}** e receita líquida de **${formatCurrencyBRL(data.receitaLiquida)}**. O EBITDA real obtido foi de **${formatCurrencyBRL(data.lucroOperacional)} (${pctEbitdaReal.toFixed(2)}%)**, em comparação com a meta de referência de **${ref.meta_ebitda.toFixed(2)}%**. 
+A unidade **${currentLoja}** fechou o mês com faturamento bruto de **${formatCurrencyBRL(data.receitaBruta)}** (incluindo **${formatCurrencyBRL(data.receitaServicos)}** de taxa de entrega) e receita líquida de **${formatCurrencyBRL(data.receitaLiquida)}**. O EBITDA real obtido foi de **${formatCurrencyBRL(data.lucroOperacional)} (${pctEbitdaReal.toFixed(2)}%)**, em comparação com a meta de referência de **${ref.meta_ebitda.toFixed(2)}%**. 
 
 ### 2. Análise de Desvios Críticos (Real vs. Referência)
-| Conta Gerencial | % Real na Loja | % Ideal/Referência | Impacto Financeiro (R$) |
-| :--- | :---: | :---: | :---: |
-| **Custo de Mercadoria Vendida (CMV)** | ${pctRealCMV.toFixed(2)}% | ${Math.abs(ref.meta_cmv).toFixed(2)}% | -${formatCurrencyBRL(data.receitaLiquida * (desvioCMV / 100))} |
-| **Custo de Pessoal (Total)** | ${pctRealPessoal.toFixed(2)}% | ${Math.abs(ref.meta_pessoal).toFixed(2)}% | -${formatCurrencyBRL(data.receitaLiquida * (desvioPessoal / 100))} |
-| *-- Horas Extras (inclusa em Pessoal)* | ${pctRealHorasExtras.toFixed(2)}% | 1.50% | - |
-| **Ocupação (Aluguel)** | ${pctRealOcupacao.toFixed(2)}% | ${Math.abs(ref.meta_ocupacao).toFixed(2)}% | - |
-| **Utilidades (Energia/Gás/Água)** | ${pctRealUtilidades.toFixed(2)}% | ${Math.abs(ref.meta_utilidades).toFixed(2)}% | - |
+| Conta Gerencial | Valor Real (R$) | % Real na Loja | % Ideal/Referência | Desvio (p.p.) | Impacto Financeiro (R$) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Fat. Bruto** | ${formatCurrencyBRL(data.receitaBruta)} | 100.00% | - | - | - |
+| **Rec. Líquida** | ${formatCurrencyBRL(data.receitaLiquida)} | ${(data.receitaLiquida/divisor*100).toFixed(2)}% | - | - | - |
+| **Rec. Taxa entrega** | ${formatCurrencyBRL(data.receitaServicos)} | ${pctRealServicos.toFixed(2)}% | ${ref.meta_servicos.toFixed(2)}% | ${desvioServicos > 0 ? '+' : ''}${desvioServicos.toFixed(2)}% | ${impactoServicos > 0 ? '+' : ''}${formatCurrencyBRL(impactoServicos)} |
+| **CMV** | -${formatCurrencyBRL(Math.abs(data.cmvTotal))} | ${pctRealCMV.toFixed(2)}% | ${Math.abs(ref.meta_cmv).toFixed(2)}% | ${desvioCMV > 0 ? '+' : ''}${desvioCMV.toFixed(2)}% | -${formatCurrencyBRL(data.receitaLiquida * (desvioCMV / 100))} |
+| **Pessoal** | -${formatCurrencyBRL(Math.abs(data.pessoalTotal))} | ${pctRealPessoal.toFixed(2)}% | ${Math.abs(ref.meta_pessoal).toFixed(2)}% | ${desvioPessoal > 0 ? '+' : ''}${desvioPessoal.toFixed(2)}% | -${formatCurrencyBRL(data.receitaLiquida * (desvioPessoal / 100))} |
+| **Ocupação** | -${formatCurrencyBRL(Math.abs(data.aluguel))} | ${pctRealOcupacao.toFixed(2)}% | ${Math.abs(ref.meta_ocupacao).toFixed(2)}% | ${desvioOcupacao > 0 ? '+' : ''}${desvioOcupacao.toFixed(2)}% | -${formatCurrencyBRL(data.receitaLiquida * (desvioOcupacao / 100))} |
+| **Utilidades** | -${formatCurrencyBRL(Math.abs(data.energia + data.gas + data.agua))} | ${pctRealUtilidades.toFixed(2)}% | ${Math.abs(ref.meta_utilidades).toFixed(2)}% | ${desvioUtilidades > 0 ? '+' : ''}${desvioUtilidades.toFixed(2)}% | -${formatCurrencyBRL(data.receitaLiquida * (desvioUtilidades / 100))} |
+| **EBITDA** | ${formatCurrencyBRL(data.lucroOperacional)} | ${pctEbitdaReal.toFixed(2)}% | ${ref.meta_ebitda.toFixed(2)}% | ${desvioEbitda > 0 ? '+' : ''}${desvioEbitda.toFixed(2)}% | ${desvioEbitda > 0 ? '+' : ''}${formatCurrencyBRL(data.receitaLiquida * (desvioEbitda / 100))} |
 
 ### 3. Principais Oportunidades Identificadas
-* **Oportunidade 1 (CMV):** Desvio de CMV de ${desvioCMV.toFixed(2)}% em relação ao ideal de cluster, acarretando perda líquida estimada em ${formatCurrencyBRL(data.receitaLiquida * (desvioCMV / 100))}.
-* **Oportunidade 2 (Pessoal):** A conta de horas extras representou ${pctRealHorasExtras.toFixed(2)}% da receita líquida, pressionando o custo total de pessoal para ${pctRealPessoal.toFixed(2)}%.
-* **Oportunidade 3 (Ocupação/Utilidades):** A fatia gasta em aluguel e concessionárias (luz, gás, água) totalizou ${(pctRealOcupacao + pctRealUtilidades).toFixed(2)}% da receita.
+* **CMV:** Desvio de CMV de ${desvioCMV.toFixed(2)}% em relação ao ideal de cluster, acarretando perda líquida estimada em ${formatCurrencyBRL(data.receitaLiquida * (desvioCMV / 100))}.
+* **Pessoal:** A conta de horas extras representou ${pctRealHorasExtras.toFixed(2)}% do faturamento, com custo total de pessoal em ${pctRealPessoal.toFixed(2)}%.
+* **Ocupação/Utilidades:** A fatia gasta em aluguel e concessionárias (luz, gás, água) totalizou ${(pctRealOcupacao + pctRealUtilidades).toFixed(2)}% da receita.
 
 ### 4. Plano de Ação Recomendado (Foco em Resultado)
 * **Ação para CMV:** Garantir repesagem total na mesa de montagem para controle de mussarela e insumos do TOP 5, reduzindo desperdícios na produção.
