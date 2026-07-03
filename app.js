@@ -3,45 +3,45 @@
 
 // Parâmetros de Referência Ideais pré-incorporados (como fallbacks se a ref não for subida)
 const REFERENCIA_CLUSTERS = {
-    "ATE_100K": {
-        nome: "Até R$ 100K",
-        meta_cmv: -39.2,
-        meta_pessoal: -27.7,
-        meta_ocupacao: -9.8,
-        meta_utilidades: -6.8,
-        meta_ebitda: -6.8
-    },
-    "ENTRE_100K_150K": {
-        nome: "Entre R$ 100K e R$ 150K",
-        meta_cmv: -35.5,
-        meta_pessoal: -25.7,
-        meta_ocupacao: -8.1,
-        meta_utilidades: -5.5,
-        meta_ebitda: 1.0
+    "ATE_150K": {
+        nome: "Até R$ 150K",
+        meta_cmv: -35.4,
+        meta_pessoal: -23.69,
+        meta_ocupacao: -5.0,
+        meta_utilidades: -8.1,
+        meta_ebitda: 7.05
     },
     "ENTRE_150K_200K": {
-        nome: "Entre R$ 150K e R$ 200K",
-        meta_cmv: -33.5,
-        meta_pessoal: -22.2,
-        meta_ocupacao: -5.1,
-        meta_utilidades: -6.7,
-        meta_ebitda: 10.3
+        nome: "De R$ 150K a R$ 200K",
+        meta_cmv: -35.4,
+        meta_pessoal: -21.84,
+        meta_ocupacao: -5.0,
+        meta_utilidades: -6.58,
+        meta_ebitda: 10.17
     },
     "ENTRE_200K_250K": {
-        nome: "Entre R$ 200K e R$ 250K",
-        meta_cmv: -33.5,
-        meta_pessoal: -22.0,
-        meta_ocupacao: -5.1,
-        meta_utilidades: -5.8,
-        meta_ebitda: 11.5
-    },
-    "ACIMA_250K": {
-        nome: "Acima de R$ 250K",
-        meta_cmv: -33.5,
-        meta_pessoal: -20.4,
+        nome: "De R$ 200K a R$ 250K",
+        meta_cmv: -35.4,
+        meta_pessoal: -21.52,
         meta_ocupacao: -5.0,
-        meta_utilidades: -4.8,
-        meta_ebitda: 15.8
+        meta_utilidades: -5.66,
+        meta_ebitda: 11.26
+    },
+    "ENTRE_250K_300K": {
+        nome: "De R$ 250K a R$ 300K",
+        meta_cmv: -35.4,
+        meta_pessoal: -20.65,
+        meta_ocupacao: -5.0,
+        meta_utilidades: -5.05,
+        meta_ebitda: 15.66
+    },
+    "ACIMA_300K": {
+        nome: "Acima de R$ 300K",
+        meta_cmv: -35.4,
+        meta_pessoal: -20.03,
+        meta_ocupacao: -5.0,
+        meta_utilidades: -4.61,
+        meta_ebitda: 15.68
     }
 };
 
@@ -634,11 +634,11 @@ function parseCurrency(val) {
 
 // Enquadramento de Cluster de Faturamento
 function getClusterInfo(faturamentoBruto) {
-    if (faturamentoBruto < 100000) return REFERENCIA_CLUSTERS.ATE_100K;
-    if (faturamentoBruto < 150000) return REFERENCIA_CLUSTERS.ENTRE_100K_150K;
+    if (faturamentoBruto < 150000) return REFERENCIA_CLUSTERS.ATE_150K;
     if (faturamentoBruto < 200000) return REFERENCIA_CLUSTERS.ENTRE_150K_200K;
     if (faturamentoBruto < 250000) return REFERENCIA_CLUSTERS.ENTRE_200K_250K;
-    return REFERENCIA_CLUSTERS.ACIMA_250K;
+    if (faturamentoBruto < 300000) return REFERENCIA_CLUSTERS.ENTRE_250K_300K;
+    return REFERENCIA_CLUSTERS.ACIMA_300K;
 }
 
 // Renderizar a Análise da Loja Selecionada
