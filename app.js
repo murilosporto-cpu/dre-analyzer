@@ -1134,29 +1134,3 @@ A unidade **${currentLoja}** fechou o mês com faturamento bruto de **${formatCu
     link.click();
     document.body.removeChild(link);
 });
-
-// Carregador Automático de Planilha Padrão no Início
-window.addEventListener('DOMContentLoaded', () => {
-    const defaultFileNames = ['dre_padrao.xlsm', 'dre_padrao.xlsx'];
-    
-    function tryLoadDefault(index) {
-        if (index >= defaultFileNames.length) return;
-        const fileName = defaultFileNames[index];
-        
-        fetch(fileName)
-            .then(res => {
-                if (res.ok) return res.blob();
-                throw new Error("Arquivo padrão não encontrado");
-            })
-            .then(blob => {
-                const file = new File([blob], fileName, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-                handleFileSelect(file);
-            })
-            .catch(() => {
-                // Se der erro, tenta o próximo nome de arquivo padrão
-                tryLoadDefault(index + 1);
-            });
-    }
-    
-    tryLoadDefault(0);
-});
