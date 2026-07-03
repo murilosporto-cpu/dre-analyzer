@@ -592,12 +592,7 @@ function parseDREColumn(rows, colIndex) {
         }
     });
     
-    // Acrescenta a Receita de Serviços aos totais de faturamento bruto, receita líquida e ebitda
-    if (data.receitaServicos !== 0) {
-        data.receitaBruta += data.receitaServicos;
-        data.receitaLiquida += data.receitaServicos;
-        data.lucroOperacional += data.receitaServicos;
-    }
+    // A Receita de Serviços (taxa de entrega) já vem somada nos totais de faturamento e EBITDA nas DREs oficiais, por isso não realizamos acréscimo manual para evitar dupla contagem.
     
     // Atualizar pessoalTotal com a soma das subcontas se não tiver sido extraído diretamente
     if (data.pessoalTotal === 0) {
