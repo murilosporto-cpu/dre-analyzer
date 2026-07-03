@@ -580,10 +580,8 @@ function parseDREColumn(rows, colIndex) {
                 data.lucroOperacional = valorVal;
                 break;
                 
-            // 8. Receita de Serviços (Totalmente imune a acentuações ou bugs de codificação como ç, c, servicos, servios)
-            case (contaUpper.includes("RECEITA") && contaUpper.includes("SERVI")) || 
-                 (contaUpper.includes("TAXA") && contaUpper.includes("ENTREG")) || 
-                 contaUpper.includes("MERCHANDIS"):
+            // 8. Receita de Serviços (Evita conflitos com Outros Serviços Terceirizados exigindo palavras-chave específicas)
+            case (contaUpper.includes("RECEITA") && (contaUpper.includes("SERVI") || contaUpper.includes("SERVIÇ")) && (contaUpper.includes("TAXA") || contaUpper.includes("ENTREG") || contaUpper.includes("MERCHANDIS"))):
                 data.receitaServicos = valorVal;
                 break;
         }
@@ -719,9 +717,6 @@ function renderAnalysis(loja, period) {
     ];
     
     contasExibir.forEach(conta => {
-        // Ignora contas gerenciais que estão zeradas no relatório do período selecionado
-        if (conta.valorReal === 0) return;
-        
         const pctRealVal = Math.abs((conta.valorReal / recLiquidaDiv) * 100);
         
         let metaValStr = "-";
