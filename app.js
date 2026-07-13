@@ -39,8 +39,17 @@ const REFERENCIA_CLUSTERS = {
         meta_ebitda: 15.66,
         meta_servicos: 10.23
     },
-    "ACIMA_300K": {
-        nome: "Acima de R$ 300K",
+    "ENTRE_300K_350K": {
+        nome: "De R$ 300K a R$ 350K",
+        meta_cmv: -35.4,
+        meta_pessoal: -20.65,
+        meta_ocupacao: -5.0,
+        meta_utilidades: -5.05,
+        meta_ebitda: 15.66,
+        meta_servicos: 10.23
+    },
+    "ACIMA_350K": {
+        nome: "Acima de R$ 350K",
         meta_cmv: -35.4,
         meta_pessoal: -20.03,
         meta_ocupacao: -5.0,
@@ -646,7 +655,8 @@ function getClusterInfo(faturamentoBruto) {
     if (faturamentoBruto < 200000) return REFERENCIA_CLUSTERS.ENTRE_150K_200K;
     if (faturamentoBruto < 250000) return REFERENCIA_CLUSTERS.ENTRE_200K_250K;
     if (faturamentoBruto < 300000) return REFERENCIA_CLUSTERS.ENTRE_250K_300K;
-    return REFERENCIA_CLUSTERS.ACIMA_300K;
+    if (faturamentoBruto < 350000) return REFERENCIA_CLUSTERS.ENTRE_300K_350K;
+    return REFERENCIA_CLUSTERS.ACIMA_350K;
 }
 
 // Renderizar a Análise da Loja Selecionada
