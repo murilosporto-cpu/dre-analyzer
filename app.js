@@ -943,7 +943,7 @@ function renderAnalysis(loja, period) {
                 
                 if (dataVal) {
                     const val = row.getValue(dataVal);
-                    const denom = dataVal.receitaBruta > 0 ? dataVal.receitaBruta : 1;
+                    const denom = dataVal.receitaVendas > 0 ? dataVal.receitaVendas : (dataVal.receitaBruta > 0 ? dataVal.receitaBruta : 1);
                     const pctVal = (val / denom) * 100;
                     
                     if (row.format === "currency") {
@@ -1032,7 +1032,7 @@ function renderAnalysis(loja, period) {
                         }
                     } else {
                         // Calcula % baseado no Faturamento Bruto (Vendas)
-                        const denom = dataVal.receitaBruta > 0 ? dataVal.receitaBruta : 1;
+                        const denom = dataVal.receitaVendas > 0 ? dataVal.receitaVendas : (dataVal.receitaBruta > 0 ? dataVal.receitaBruta : 1);
                         const pctVal = (val / denom) * 100;
                         formattedVal = `${pctVal.toFixed(1)}%`;
                         if (pctVal < 0) {
