@@ -86,37 +86,42 @@ window.addEventListener("drop", (e) => {
     e.preventDefault();
 }, false);
 
-// Eventos de Arrastar e Soltar na Zona de Upload
-dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('dragover');
-});
+// Eventos de Arrastar e Soltar na Zona de Upload (Diagnóstico)
+if (dropZone) {
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
 
-dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('dragover');
-});
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
 
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    if (e.dataTransfer.files.length > 0) {
-        handleFileSelect(e.dataTransfer.files[0]);
-    }
-});
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            handleFileSelect(e.dataTransfer.files[0]);
+        }
+    });
 
-// Clique na Zona de Upload redireciona para o seletor invisível
-dropZone.addEventListener('click', () => {
-    fileInput.click();
-});
+    dropZone.addEventListener('click', () => {
+        if (fileInput) fileInput.click();
+    });
+}
 
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        handleFileSelect(e.target.files[0]);
-    }
-});
+if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+}
 
-removeFileBtn.addEventListener('remove', clearFile);
-removeFileBtn.addEventListener('click', clearFile);
+if (removeFileBtn) {
+    removeFileBtn.addEventListener('remove', clearFile);
+    removeFileBtn.addEventListener('click', clearFile);
+}
 
 function handleFileSelect(file) {
     const fileNameLower = file.name.toLowerCase();
@@ -128,55 +133,59 @@ function handleFileSelect(file) {
         return;
     }
     
-    uploadedFileName.textContent = file.name;
-    dropZone.style.display = 'none';
-    fileInfoBar.style.display = 'flex';
-    analyzeBtn.disabled = false;
-    
-    // Guardar o arquivo no botão
-    analyzeBtn.fileData = file;
-    analyzeBtn.uploadedFileName = file.name; // Salva o nome do arquivo para pré-seleção
+    if (uploadedFileName) uploadedFileName.textContent = file.name;
+    if (dropZone) dropZone.style.display = 'none';
+    if (fileInfoBar) fileInfoBar.style.display = 'flex';
+    if (analyzeBtn) {
+        analyzeBtn.disabled = false;
+        analyzeBtn.fileData = file;
+        analyzeBtn.uploadedFileName = file.name;
+    }
 }
 
 function clearFile() {
-    fileInput.value = '';
-    dropZone.style.display = 'block';
-    fileInfoBar.style.display = 'none';
-    analyzeBtn.disabled = true;
-    analyzeBtn.fileData = null;
-    analyzeBtn.uploadedFileName = null;
+    if (fileInput) fileInput.value = '';
+    if (dropZone) dropZone.style.display = 'block';
+    if (fileInfoBar) fileInfoBar.style.display = 'none';
+    if (analyzeBtn) {
+        analyzeBtn.disabled = true;
+        analyzeBtn.fileData = null;
+        analyzeBtn.uploadedFileName = null;
+    }
     activeWorkbook = null;
-    resultsSection.style.display = 'none';
+    if (resultsSection) resultsSection.style.display = 'none';
     lojasProcessadas = {};
 }
 
 // Ação de Análise
-analyzeBtn.addEventListener('click', () => {
-    const file = analyzeBtn.fileData;
-    if (!file) return;
-    
-    try {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                activeWorkbook = workbook;
-                
-                processDREWorkbook(workbook);
-            } catch (err) {
-                console.error(err);
-                alert("Erro ao ler dados da planilha: " + err.message + "\n\nPor favor, envie este erro ao suporte.");
-            }
-        };
-        reader.onerror = function(err) {
-            alert("Erro de leitura do arquivo: " + err.message);
-        };
-        reader.readAsArrayBuffer(file);
-    } catch (err) {
-        alert("Erro ao iniciar leitor de arquivos: " + err.message);
-    }
-});
+if (analyzeBtn) {
+    analyzeBtn.addEventListener('click', () => {
+        const file = analyzeBtn.fileData;
+        if (!file) return;
+        
+        try {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    activeWorkbook = workbook;
+                    
+                    processDREWorkbook(workbook);
+                } catch (err) {
+                    console.error(err);
+                    alert("Erro ao ler dados da planilha: " + err.message + "\n\nPor favor, envie este erro ao suporte.");
+                }
+            };
+            reader.onerror = function(err) {
+                alert("Erro de leitura do arquivo: " + err.message);
+            };
+            reader.readAsArrayBuffer(file);
+        } catch (err) {
+            alert("Erro ao iniciar leitor de arquivos: " + err.message);
+        }
+    });
+}
 
 // Detecta o nome da loja a partir do conteúdo das primeiras linhas da aba caso o nome da aba seja genérico
 function detectStoreNameFromCells(rows, defaultName) {
@@ -507,8 +516,8 @@ function parseDREColumn(rows, colIndex) {
                 break;
 
             // 2. CMV Total (Prioriza linha com "=" ou faz correspondência exata para evitar CMV - Bebidas etc.)
-            case startsWithEquals && (cleanContaUpper === "CMV" || cleanContaUpper.includes("CUSTO DE MERCADORIA VENDIDA") || cleanContaUpper.includes("CUSTO DA MERCADORIA VENDIDA")):
-            case !startsWithEquals && (contaUpper === "CMV" || contaUpper === "CUSTO DE MERCADORIA VENDIDA (CMV)" || contaUpper === "CUSTO DA MERCADORIA VENDIDA (CMV)" || contaUpper === "CUSTO DE MERCADORIA VENDIDA" || contaUpper === "CUSTO DA MERCADORIA VENDIDA"):
+            case startsWithEquals && (cleanContaUpper === "CMV" || cleanContaUpper.startsWith("CMV ") || cleanContaUpper.startsWith("CMV(") || cleanContaUpper.includes("CUSTO DE MERCADORIA VENDIDA") || cleanContaUpper.includes("CUSTO DA MERCADORIA VENDIDA")):
+            case !startsWithEquals && (contaUpper === "CMV" || contaUpper.startsWith("CMV ") || contaUpper.startsWith("CMV(") || contaUpper === "CUSTO DE MERCADORIA VENDIDA (CMV)" || contaUpper === "CUSTO DA MERCADORIA VENDIDA (CMV)" || contaUpper === "CUSTO DE MERCADORIA VENDIDA" || contaUpper === "CUSTO DA MERCADORIA VENDIDA"):
                 data.cmvTotal = valorVal;
                 break;
 
@@ -1051,60 +1060,62 @@ function formatCurrencyBRL(val) {
 }
 
 // Listener para Mudança de Loja no Select
-storeSelect.addEventListener('change', (e) => {
-    currentLoja = e.target.value;
-    renderAnalysis(currentLoja, currentPeriod);
-});
-
-// Listener para Mudança de Período no Select
-document.getElementById('period-select').addEventListener('change', (e) => {
-    currentPeriod = e.target.value;
-    renderAnalysis(currentLoja, currentPeriod);
-});
-
-// Listener para Mudança de Ano no Select
-const yearSelectElement = document.getElementById('year-select');
-if (yearSelectElement) {
-    yearSelectElement.addEventListener('change', (e) => {
-        if (activeWorkbook) {
-            processDREWorkbook(activeWorkbook);
-        }
+if (storeSelect) {
+    storeSelect.addEventListener('change', (e) => {
+        currentLoja = e.target.value;
+        renderAnalysis(currentLoja, currentPeriod);
     });
 }
 
+// Listener para Mudança de Período no Select
+const periodSelect = document.getElementById('period-select');
+if (periodSelect) {
+    periodSelect.addEventListener('change', (e) => {
+        currentPeriod = e.target.value;
+        renderAnalysis(currentLoja, currentPeriod);
+    });
+}
+
+
+
 // Ação de Impressão / PDF
-document.getElementById('print-btn').addEventListener('click', () => {
-    window.print();
-});
+const printBtn = document.getElementById('print-btn');
+if (printBtn) {
+    printBtn.addEventListener('click', () => {
+        window.print();
+    });
+}
 
 // Ação de Exportar Markdown
-document.getElementById('export-md-btn').addEventListener('click', () => {
-    const storeData = lojasProcessadas[currentLoja];
-    if (!storeData) return;
-    const data = storeData.values[currentPeriod];
-    if (!data) return;
-    
-    const ref = getClusterInfo(data.receitaBruta);
-    const divisor = data.receitaBruta > 0 ? data.receitaBruta : 1;
-    
-    const pctRealServicos = (data.receitaServicos / divisor) * 100;
-    const desvioServicos = pctRealServicos - ref.meta_servicos;
-    const impactoServicos = data.receitaLiquida * (desvioServicos / 100);
-    
-    const pctRealCMV = (Math.abs(data.cmvTotal) / divisor) * 100;
-    const pctRealPessoal = (Math.abs(data.pessoalTotal) / divisor) * 100;
-    const pctRealHorasExtras = (Math.abs(data.horasExtras) / divisor) * 100;
-    const pctRealOcupacao = (Math.abs(data.aluguel) / divisor) * 100;
-    const pctRealUtilidades = (Math.abs(data.energia + data.gas + data.agua) / divisor) * 100;
-    const pctEbitdaReal = (data.lucroOperacional / divisor) * 100;
-    const desvioEbitda = pctEbitdaReal - ref.meta_ebitda;
-    
-    const desvioCMV = pctRealCMV - Math.abs(ref.meta_cmv);
-    const desvioPessoal = pctRealPessoal - Math.abs(ref.meta_pessoal);
-    const desvioOcupacao = pctRealOcupacao - Math.abs(ref.meta_ocupacao);
-    const desvioUtilidades = pctRealUtilidades - Math.abs(ref.meta_utilidades);
-    
-    const markdown = `# 📊 RELATÓRIO DE ANÁLISE GERENCIAL E OPORTUNIDADES
+const exportMdBtn = document.getElementById('export-md-btn');
+if (exportMdBtn) {
+    exportMdBtn.addEventListener('click', () => {
+        const storeData = lojasProcessadas[currentLoja];
+        if (!storeData) return;
+        const data = storeData.values[currentPeriod];
+        if (!data) return;
+        
+        const ref = getClusterInfo(data.receitaBruta);
+        const divisor = data.receitaBruta > 0 ? data.receitaBruta : 1;
+        
+        const pctRealServicos = (data.receitaServicos / divisor) * 100;
+        const desvioServicos = pctRealServicos - ref.meta_servicos;
+        const impactoServicos = data.receitaLiquida * (desvioServicos / 100);
+        
+        const pctRealCMV = (Math.abs(data.cmvTotal) / divisor) * 100;
+        const pctRealPessoal = (Math.abs(data.pessoalTotal) / divisor) * 100;
+        const pctRealHorasExtras = (Math.abs(data.horasExtras) / divisor) * 100;
+        const pctRealOcupacao = (Math.abs(data.aluguel) / divisor) * 100;
+        const pctRealUtilidades = (Math.abs(data.energia + data.gas + data.agua) / divisor) * 100;
+        const pctEbitdaReal = (data.lucroOperacional / divisor) * 100;
+        const desvioEbitda = pctEbitdaReal - ref.meta_ebitda;
+        
+        const desvioCMV = pctRealCMV - Math.abs(ref.meta_cmv);
+        const desvioPessoal = pctRealPessoal - Math.abs(ref.meta_pessoal);
+        const desvioOcupacao = pctRealOcupacao - Math.abs(ref.meta_ocupacao);
+        const desvioUtilidades = pctRealUtilidades - Math.abs(ref.meta_utilidades);
+        
+        const markdown = `# 📊 RELATÓRIO DE ANÁLISE GERENCIAL E OPORTUNIDADES
 **Loja Analisada:** ${currentLoja}
 **Mês de Referência:** ${currentPeriod}
 **Cluster de Enquadramento:** ${ref.nome}
@@ -1134,12 +1145,36 @@ A unidade **${currentLoja}** fechou o mês com faturamento bruto de **${formatCu
 * **Ação para Pessoal:** Otimizar escalas de trabalho concentrando a equipe nos picos operacionais de final de semana, diminuindo dependência de horas extras.
 * **Ação para Ocupação/Utilidades:** Controlar acendimento e temperatura do forno de esteira nos períodos de vale operacional.
 `;
+        
+        const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", `relatorio_dre_${currentLoja.replace(/\s+/g, '_').toLowerCase()}_${currentPeriod.toLowerCase()}.md`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+}
 
-    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.setAttribute("download", `relatorio_dre_${currentLoja.replace(/\s+/g, '_').toLowerCase()}_${currentPeriod.toLowerCase()}.md`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-});
+// Funções auxiliares para manipulação de células no SheetJS
+function getCellValue(rows, r, c) {
+    if (r < rows.length && rows[r] && c < rows[r].length) {
+        return rows[r][c];
+    }
+    return null;
+}
+
+function copyCellObj(srcSheet, srcRow, srcCol, destSheet, destRow, destCol) {
+    const srcRef = XLSX.utils.encode_cell({r: srcRow, c: srcCol});
+    const destRef = XLSX.utils.encode_cell({r: destRow, c: destCol});
+    const cell = srcSheet[srcRef];
+    if (cell) {
+        destSheet[destRef] = { ...cell };
+    }
+}
+
+function updateSplitterProgress(status, pct) {
+    if (splitterProgressStatus) splitterProgressStatus.textContent = status;
+    if (splitterProgressPct) splitterProgressPct.textContent = pct + "%";
+    if (splitterProgressFill) splitterProgressFill.style.width = pct + "%";
+}
