@@ -452,6 +452,7 @@ function parseStoreDRE(rows) {
 // Processa uma coluna específica de dados para retornar as contas gerenciais daquele mês
 function parseDREColumn(rows, colIndex) {
     let data = {
+        receitaVendas: 0, // Receita de Vendas (Exclui taxas de entrega / serviços)
         receitaBruta: 0,
         receitaLiquida: 0,
         receitaServicos: 0, // Receita de Serviços (Taxa de entrega, merchandising)
@@ -510,6 +511,10 @@ function parseDREColumn(rows, colIndex) {
         
         switch (true) {
             // 1. Receitas (Lê por similaridade, pois não há risco de conflito com subcontas)
+            case (contaUpper.includes("RECEITA") && contaUpper.includes("VENDA") && !contaUpper.includes("BRUTA") && !contaUpper.includes("OPERACIONAL")):
+                data.receitaVendas = valorVal;
+                break;
+                
             case contaUpper.includes("RECEITA") && contaUpper.includes("BRUTA"):
             case contaUpper.includes("FATURAMENTO BRUTO") || contaUpper.includes("VENDAS BRUTAS") || contaUpper.includes("RECEITA DE VENDAS"):
                 data.receitaBruta = valorVal;
@@ -612,6 +617,11 @@ function parseDREColumn(rows, colIndex) {
     
     // A Receita de Serviços (taxa de entrega) já vem somada nos totais de faturamento e EBITDA nas DREs oficiais, por isso não realizamos acréscimo manual para evitar dupla contagem.
     
+    // Fallback se a receita de vendas não foi mapeada diretamente (Deduz receitaServicos do faturamento bruto)
+    if (data.receitaVendas === 0) {
+        data.receitaVendas = data.receitaBruta - data.receitaServicos;
+    }
+    
     // Atualizar pessoalTotal com a soma das subcontas se não tiver sido extraído diretamente
     if (data.pessoalTotal === 0) {
         data.pessoalTotal = -sumPessoal;
@@ -669,8 +679,8 @@ function renderAnalysis(loja, period) {
     
     const ref = getClusterInfo(data.receitaBruta);
     
-    // Evitar divisões por zero se o faturamento bruto for zero (Benchmarks são baseados no faturamento bruto)
-    const recLiquidaDiv = data.receitaBruta > 0 ? data.receitaBruta : 1;
+    // Evitar divisões por zero se o faturamento bruto for zero (Benchmarks são baseados na Receita Vendas / Faturamento de Vendas sem Serviços)
+    const recLiquidaDiv = data.receitaVendas > 0 ? data.receitaVendas : (data.receitaBruta > 0 ? data.receitaBruta : 1);
     
     // 1. Preencher KPIs principais
     kpiFaturamento.textContent = formatCurrencyBRL(data.receitaBruta);
@@ -1106,7 +1116,7 @@ if (exportMdBtn) {
         if (!data) return;
         
         const ref = getClusterInfo(data.receitaBruta);
-        const divisor = data.receitaBruta > 0 ? data.receitaBruta : 1;
+        const divisor = data.receitaVendas > 0 ? data.receitaVendas : (data.receitaBruta > 0 ? data.receitaBruta : 1);
         
         const pctRealServicos = (data.receitaServicos / divisor) * 100;
         const desvioServicos = pctRealServicos - ref.meta_servicos;
